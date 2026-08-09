@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review Manuscript | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="reviewer.html">← My Reviews</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1 id="msTitle">Loading…</h1>
+      <div class="meta-line" id="msMeta"></div>
+    </div>
+    <a class="btn btn-outline" href="reviewer.html">Back</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="form-alert" id="alert"></div>
+    <div id="body" style="display:none;">
+
+      <div class="anon-notice">
+        <b>Double-anonymous review.</b> Author names and affiliations have been withheld, and your identity is not
+        disclosed to the authors. Please do not include anything in your comments that would identify you.
+      </div>
+
+      <!-- Manuscript -->
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Manuscript</h3><p class="panel-sub" id="roundLine"></p></div>
+          <div id="fileActions"></div>
+        </div>
+        <div class="meta-grid" id="metaGrid"></div>
+        <div style="margin-top:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;">Abstract</div>
+          <div style="font-size:13px;color:var(--ink);white-space:pre-wrap;" id="abstractBox"></div>
+        </div>
+      </div>
+
+      <!-- Invitation response -->
+      <div class="panel" id="respondPanel" style="display:none;">
+        <h3>Review Invitation</h3>
+        <p class="panel-sub">Please let the editor know whether you are able to review this manuscript.</p>
+        <div class="form-row">
+          <label for="declineReason">If declining, a brief reason (optional, seen by the editor)</label>
+          <input type="text" id="declineReason" placeholder="e.g. outside my area, or unavailable until March">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-navy btn-sm" id="acceptBtn">Accept — I will review this</button>
+          <button class="btn btn-ghost btn-sm" id="declineBtn">Decline</button>
+        </div>
+      </div>
+
+      <!-- Review form -->
+      <div class="panel" id="formPanel" style="display:none;">
+        <h3>Your Review</h3>
+        <p class="panel-sub">Your recommendation guides the editor but is not binding — the editor makes the final decision.</p>
+
+        <div class="form-row">
+          <label for="recommendation">Recommendation <span style="color:#a12626;">*</span></label>
+          <select id="recommendation">
+            <option value="">Choose a recommendation…</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="commentsForAuthor">Comments for the author <span style="color:#a12626;">*</span></label>
+          <textarea id="commentsForAuthor" style="min-height:180px;" placeholder="Your assessment of the manuscript — strengths, weaknesses, and specific, actionable requests. This is shared with the author, anonymously."></textarea>
+          <div class="hint">Shared with the author (without your name). Minimum 50 characters.</div>
+        </div>
+
+        <div class="form-row">
+          <label for="commentsForEditor">Confidential comments for the editor</label>
+          <textarea id="commentsForEditor" placeholder="Anything you'd rather the author not see — e.g. suspected duplicate publication, or candour about the severity of the flaws."></textarea>
+          <div class="hint">Never shown to the author.</div>
+        </div>
+
+        <div class="form-row">
+          <label for="reviewFile">Attach an annotated file (optional)</label>
+          <input type="file" id="reviewFile" accept=".pdf,.doc,.docx">
+          <div class="hint">PDF or Word, up to 25 MB. Strip your name from the file's document properties if your software adds it.</div>
+        </div>
+
+        <button class="btn btn-gold" id="submitBtn">Submit Review</button>
+      </div>
+
+      <!-- Completed view -->
+      <div class="panel" id="donePanel" style="display:none;">
+        <h3>Review Submitted</h3>
+        <p class="panel-sub" id="doneSub"></p>
+        <div id="doneBody"></div>
+      </div>
+
+      <!-- Declined view -->
+      <div class="panel" id="declinedPanel" style="display:none;">
+        <h3>Invitation Declined</h3>
+        <p class="panel-sub">You declined this review invitation. The editor has been notified.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+  const A = window.AaranyaAuth;
+  const id = new URLSearchParams(window.location.search).get('id');
+  let recommendations = {};
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  }
+  function showAlert(msg, kind){
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = 'form-alert show ' + (kind || 'error');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function clearAlert(){ document.getElementById('alert').className = 'form-alert'; }
+
+  async function download(url){
+    const res = await A.apiFetch(url);
+    if (!res.ok){ alert('Could not download this file.'); return; }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = m ? decodeURIComponent(m[1]) : '';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(objUrl);
+  }
+
+  function render(data){
+    const s = data.submission;
+    const a = data.assignment;
+    recommendations = data.recommendations || {};
+
+    document.getElementById('msTitle').textContent = s.title;
+    document.getElementById('msMeta').innerHTML = esc(s.journalName) + ' · ' + esc(s.articleType) +
+      ' · <span class="status-chip" style="background:var(--bg-soft);color:var(--muted);">' + esc(a.statusLabel) + '</span>';
+    document.getElementById('roundLine').textContent =
+      'Review round ' + a.round + (a.dueDate ? ' · due ' + fmtDate(a.dueDate) : '') + '.';
+
+    document.getElementById('metaGrid').innerHTML = [
+      ['Article Type', s.articleType],
+      ['Subject Area', s.subjectArea || '—'],
+      ['Keywords', s.keywords || '—'],
+      ['Invited', fmtDate(a.assignedAt)]
+    ].map(function(r){
+      return '<div><div class="k">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + '</div></div>';
+    }).join('');
+
+    document.getElementById('abstractBox').textContent = s.abstract || '';
+
+    // Files — only once the invitation has been accepted.
+    const fa = document.getElementById('fileActions');
+    if (a.status === 'pending'){
+      fa.innerHTML = '<span class="hint">Accept the invitation to download the manuscript.</span>';
+    } else if (a.status === 'declined'){
+      fa.innerHTML = '';
+    } else {
+      let html = '<a class="btn btn-navy btn-sm" href="#" data-dl="/api/reviews/' + esc(a.id) + '/file">Download Manuscript</a>';
+      (s.supplementaryFiles || []).forEach(function(f, i){
+        html += ' <a class="btn btn-ghost btn-sm" href="#" data-dl="/api/reviews/' + esc(a.id) + '/supplementary/' + i + '">Supplementary ' + (i+1) + '</a>';
+      });
+      fa.innerHTML = html;
+    }
+    fa.querySelectorAll('[data-dl]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.preventDefault(); download(el.getAttribute('data-dl')); });
+    });
+
+    // Panels by state
+    document.getElementById('respondPanel').style.display  = a.status === 'pending'   ? 'block' : 'none';
+    document.getElementById('formPanel').style.display     = a.status === 'accepted'  ? 'block' : 'none';
+    document.getElementById('donePanel').style.display     = a.status === 'completed' ? 'block' : 'none';
+    document.getElementById('declinedPanel').style.display = a.status === 'declined'  ? 'block' : 'none';
+
+    if (a.status === 'accepted'){
+      const sel = document.getElementById('recommendation');
+      sel.innerHTML = '<option value="">Choose a recommendation…</option>' +
+        Object.keys(recommendations).map(function(k){
+          return '<option value="' + esc(k) + '"' + (a.recommendation===k?' selected':'') + '>' + esc(recommendations[k]) + '</option>';
+        }).join('');
+      document.getElementById('commentsForAuthor').value = a.commentsForAuthor || '';
+      document.getElementById('commentsForEditor').value = a.commentsForEditor || '';
+    }
+
+    if (a.status === 'completed'){
+      document.getElementById('doneSub').textContent =
+        'Submitted ' + fmtDate(a.completedAt) + '. Thank you — the editor has your review.';
+      let html = '<div style="margin-bottom:12px;"><span class="rec-chip ' + esc(a.recommendation) + '">' +
+        esc(recommendations[a.recommendation] || a.recommendation) + '</span></div>' +
+        '<div class="rc-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:12px 0 4px;font-weight:700;">Comments for the author</div>' +
+        '<div class="rc-body" style="font-size:13px;white-space:pre-wrap;background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:10px 12px;">' + esc(a.commentsForAuthor) + '</div>';
+      if (a.commentsForEditor){
+        html += '<div class="rc-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:12px 0 4px;font-weight:700;">Confidential comments for the editor</div>' +
+          '<div class="rc-body" style="font-size:13px;white-space:pre-wrap;background:#fffdf5;border:1px solid #f0dcb4;border-radius:6px;padding:10px 12px;">' + esc(a.commentsForEditor) + '</div>';
+      }
+      if (a.reviewFile){
+        html += '<div style="margin-top:12px;" class="hint">Attached: ' + esc(a.reviewFile.fileName) + '</div>';
+      }
+      document.getElementById('doneBody').innerHTML = html;
+    }
+  }
+
+  async function respond(accept){
+    clearAlert();
+    const reason = document.getElementById('declineReason').value;
+    if (!accept && !confirm('Decline this review invitation?')) return;
+    const res = await A.apiFetch('/api/reviews/' + id + '/respond', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ accept: accept, reason: reason })
+    });
+    if (!res.ok){
+      const e = await res.json().catch(function(){return {};});
+      showAlert(e.error || 'Could not record your response.');
+      return;
+    }
+    load();
+  }
+
+  async function submitReview(){
+    clearAlert();
+    const recommendation = document.getElementById('recommendation').value;
+    const forAuthor = document.getElementById('commentsForAuthor').value.trim();
+    const forEditor = document.getElementById('commentsForEditor').value.trim();
+    const fileInput = document.getElementById('reviewFile');
+
+    if (!recommendation){ showAlert('Please choose a recommendation.'); return; }
+    if (forAuthor.length < 50){ showAlert('Comments for the author must be at least 50 characters.'); return; }
+    if (!confirm('Submit this review? You will not be able to edit it afterwards.')) return;
+
+    const fd = new FormData();
+    fd.append('recommendation', recommendation);
+    fd.append('commentsForAuthor', forAuthor);
+    fd.append('commentsForEditor', forEditor);
+    if (fileInput.files[0]) fd.append('reviewFile', fileInput.files[0]);
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    const res = await A.apiFetch('/api/reviews/' + id + '/submit', { method:'POST', body: fd });
+    btn.disabled = false; btn.textContent = 'Submit Review';
+
+    if (!res.ok){
+      const e = await res.json().catch(function(){return {};});
+      showAlert(e.error || 'Could not submit your review.');
+      return;
+    }
+    load();
+  }
+
+  async function load(){
+    if (!id){ showAlert('No review specified.'); return; }
+    try{
+      const res = await A.apiFetch('/api/reviews/' + id);
+      if (res.status === 403){ showAlert('Your account does not hold the reviewer role.'); return; }
+      if (!res.ok){
+        const e = await res.json().catch(function(){return {};});
+        showAlert(e.error || 'Could not load this review.');
+        return;
+      }
+      const data = await res.json();
+      document.getElementById('body').style.display = 'block';
+      clearAlert();
+      render(data);
+    }catch(e){
+      showAlert('Could not load this review.');
+    }
+  }
+
+  document.getElementById('acceptBtn').addEventListener('click', function(){ respond(true); });
+  document.getElementById('declineBtn').addEventListener('click', function(){ respond(false); });
+  document.getElementById('submitBtn').addEventListener('click', submitReview);
+
+  load();
+})();
+</script>
+</body>
+</html>

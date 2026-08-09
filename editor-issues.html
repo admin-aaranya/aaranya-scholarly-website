@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Issues — Editorial | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="editor.html">← Editorial Dashboard</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Issues</h1>
+      <div class="meta-line">Assemble volumes and numbers, then release them to the public archive.</div>
+    </div>
+    <a class="btn btn-outline" href="editor.html">Back to Queue</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="form-alert" id="alert"></div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Create an Issue</h3>
+          <p class="panel-sub">An issue starts as <b>planned</b> — invisible to readers. Publish articles into it, then release it.</p>
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label for="njJournal">Journal</label><select id="njJournal"></select></div>
+        <div class="form-row"><label for="njYear">Year</label><input type="number" id="njYear" placeholder="2026"></div>
+        <div class="form-row"><label for="njVolume">Volume</label><input type="number" id="njVolume" placeholder="1" min="1"></div>
+        <div class="form-row"><label for="njNumber">Number</label><input type="number" id="njNumber" placeholder="1" min="1"></div>
+        <div class="form-row" style="grid-column:1/-1;"><label for="njTitle">Special issue title (optional)</label><input type="text" id="njTitle" placeholder="Advances in Regenerative Medicine"></div>
+        <div class="form-row" style="grid-column:1/-1;"><label for="njDesc">Description (optional)</label><input type="text" id="njDesc" placeholder="Shown at the top of the issue's table of contents"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" id="njCreate">Create Issue</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>All Issues</h3>
+          <p class="panel-sub">Across the journals you cover, newest first.</p>
+        </div>
+        <div><select id="filterJournal" style="max-width:280px;"></select></div>
+      </div>
+      <div id="issuesWrap"><div class="empty-state"><div class="icon">⏳</div><h3>Loading…</h3></div></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+  const A = window.AaranyaAuth;
+  const PROD = '/api/editorial/production';
+  let journals = {};
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  }
+  function showAlert(msg, kind){
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = 'form-alert show ' + (kind || 'error');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function clearAlert(){ document.getElementById('alert').className = 'form-alert'; }
+
+  async function api(path, options){
+    const res = await A.apiFetch(path, options);
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) throw new Error(data.error || 'That did not work.');
+    return data;
+  }
+  function json(body, method){
+    return { method: method || 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) };
+  }
+
+  function renderIssues(issues){
+    const wrap = document.getElementById('issuesWrap');
+    if (!issues.length){
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">📚</div><h3>No issues yet</h3>' +
+        '<p>Create one above. Articles can only be published into an issue.</p></div>';
+      return;
+    }
+    wrap.innerHTML = issues.map(function(i){
+      const released = i.status === 'published';
+      const chip = released
+        ? '<span class="status-chip" style="background:#eef7f3;color:#1c6b4f;">Released</span>'
+        : '<span class="status-chip" style="background:#f4f0e6;color:#8a6516;">Planned</span>';
+      return '<div class="review-card">' +
+        '<div class="rc-head">' +
+          '<div><span class="rc-who">' + esc(i.label) + '</span>' +
+            '<div class="rc-meta">' + esc(i.journalName) + ' · ' + i.articleCount + ' article' +
+            (i.articleCount === 1 ? '' : 's') +
+            (released && i.publishedAt ? ' · released ' + fmtDate(i.publishedAt) : '') + '</div></div>' +
+          '<div style="text-align:right;">' + chip + '</div>' +
+        '</div>' +
+        (i.description ? '<div class="rc-body" style="margin-top:8px;">' + esc(i.description) + '</div>' : '') +
+        '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button class="btn btn-ghost btn-sm" data-toc="' + esc(i.id) + '">Contents</button>' +
+          (released
+            ? '<a class="btn btn-ghost btn-sm" href="/issue/' + esc(i.id) + '" target="_blank" rel="noopener">View public page</a>' +
+              '<button class="btn btn-ghost btn-sm" data-unrelease="' + esc(i.id) + '">Withdraw from public site</button>'
+            : '<button class="btn btn-navy btn-sm" data-release="' + esc(i.id) + '">Release to public archive</button>' +
+              '<button class="btn btn-ghost btn-sm" data-delete="' + esc(i.id) + '">Delete</button>') +
+        '</div>' +
+        '<div id="toc-' + esc(i.id) + '" style="margin-top:10px;"></div>' +
+      '</div>';
+    }).join('');
+
+    wrap.querySelectorAll('button[data-toc]').forEach(function(btn){
+      btn.addEventListener('click', function(){ toggleContents(btn.getAttribute('data-toc')); });
+    });
+    wrap.querySelectorAll('button[data-release]').forEach(function(btn){
+      btn.addEventListener('click', function(){ setStatus(btn.getAttribute('data-release'), 'published'); });
+    });
+    wrap.querySelectorAll('button[data-unrelease]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (!confirm('Withdraw this issue from the public archive?\n\nEvery article in it stops being publicly readable, and any link already shared will 404.')) return;
+        setStatus(btn.getAttribute('data-unrelease'), 'planned');
+      });
+    });
+    wrap.querySelectorAll('button[data-delete]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        if (!confirm('Delete this issue?')) return;
+        clearAlert();
+        try {
+          await api(PROD + '/issues/' + btn.getAttribute('data-delete'), { method:'DELETE' });
+          load();
+        } catch(e){ showAlert(e.message); }
+      });
+    });
+  }
+
+  async function toggleContents(issueId){
+    const box = document.getElementById('toc-' + issueId);
+    if (box.innerHTML){ box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="hint">Loading…</div>';
+    try {
+      const d = await api(PROD + '/issues/' + issueId);
+      const arts = d.articles || [];
+      box.innerHTML = arts.length
+        ? '<table class="sub-table"><thead><tr><th>Order</th><th>Title</th><th>Pages</th><th>Galleys</th><th>Stage</th><th></th></tr></thead><tbody>' +
+          arts.map(function(a){
+            return '<tr>' +
+              '<td>' + (a.articleOrder == null ? '—' : esc(a.articleOrder)) + '</td>' +
+              '<td>' + esc(a.title) + '</td>' +
+              '<td>' + esc(a.pages || '—') + '</td>' +
+              '<td>' + a.galleyCount + '</td>' +
+              '<td>' + esc(a.stage) + '</td>' +
+              '<td><a href="editor-submission.html?id=' + esc(a.id) + '" style="color:var(--teal);font-weight:600;">Open</a></td>' +
+            '</tr>';
+          }).join('') + '</tbody></table>'
+        : '<div class="hint">No articles assigned yet. Assign one from its <b>Publication Details</b> panel.</div>';
+    } catch(e){
+      box.innerHTML = '<div class="hint">Could not load the contents.</div>';
+    }
+  }
+
+  async function setStatus(issueId, status){
+    clearAlert();
+    try {
+      await api(PROD + '/issues/' + issueId + '/status', json({ status: status }));
+      showAlert(status === 'published'
+        ? 'Issue released. Its published articles are now live, and their authors have been emailed.'
+        : 'Issue withdrawn from the public archive.', 'success');
+      load();
+    } catch(e){ showAlert(e.message); }
+  }
+
+  async function create(){
+    clearAlert();
+    try {
+      await api(PROD + '/issues', json({
+        journalCode: document.getElementById('njJournal').value,
+        volume: document.getElementById('njVolume').value,
+        number: document.getElementById('njNumber').value,
+        year: document.getElementById('njYear').value,
+        title: document.getElementById('njTitle').value,
+        description: document.getElementById('njDesc').value
+      }));
+      ['njTitle','njDesc'].forEach(function(f){ document.getElementById(f).value = ''; });
+      showAlert('Issue created.', 'success');
+      load();
+    } catch(e){ showAlert(e.message); }
+  }
+
+  async function load(){
+    const filter = document.getElementById('filterJournal').value || '';
+    try {
+      const d = await api(PROD + '/issues' + (filter ? '?journal=' + encodeURIComponent(filter) : ''));
+      journals = d.journals || {};
+      const codes = Object.keys(journals);
+
+      const jSel = document.getElementById('njJournal');
+      if (!jSel.options.length){
+        jSel.innerHTML = codes.map(function(c){
+          return '<option value="' + esc(c) + '">' + esc(journals[c]) + '</option>';
+        }).join('');
+        document.getElementById('njYear').value = new Date().getFullYear();
+      }
+
+      const fSel = document.getElementById('filterJournal');
+      if (!fSel.options.length){
+        fSel.innerHTML = '<option value="">All my journals</option>' + codes.map(function(c){
+          return '<option value="' + esc(c) + '">' + esc(journals[c]) + '</option>';
+        }).join('');
+        fSel.addEventListener('change', load);
+      }
+
+      renderIssues(d.issues || []);
+    } catch(e){
+      document.getElementById('issuesWrap').innerHTML =
+        '<div class="empty-state"><div class="icon">🔒</div><h3>Editor access required</h3><p>' + esc(e.message) + '</p></div>';
+    }
+  }
+
+  document.getElementById('njCreate').addEventListener('click', create);
+  load();
+})();
+</script>
+</body>
+</html>

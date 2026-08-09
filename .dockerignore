@@ -1,0 +1,26 @@
+node_modules
+data
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore
+.github
+docs
+test
+
+# Firebase Hosting config and CDN-served assets — deployed by the Firebase
+# CLI, not needed inside the Cloud Run container.
+firebase.json
+.firebaserc
+.firebaserc.example
+.firebase
+public
+
+# Windows convenience launchers — for running the site on a laptop.
+*.bat
+
+# Launcher output (_deploy.txt, _ai-setup.txt, _gemini-model.txt) and the
+# one-off operator scripts. None of it is needed at runtime.
+_*.txt
+scripts

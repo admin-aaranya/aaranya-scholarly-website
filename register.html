@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Author Registration | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<!-- Utility bar -->
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="index.html">← Aaranya Scholarly LLP</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Author Registration</h1>
+      <div class="meta-line">One account gives you access to submit and track manuscripts across all 7 Aaranya Scholarly journals.</div>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Create your author account</h2>
+    <div class="sub">Already registered? <a href="login.html" style="color:var(--teal);font-weight:600;">Log in instead</a>.</div>
+
+    <div id="formAlert" class="form-alert"></div>
+
+    <form id="registerForm" novalidate>
+      <div class="form-row">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" name="name" required autocomplete="name">
+      </div>
+
+      <div class="form-row">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label for="password">Password *</label>
+          <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8">
+          <div class="hint">At least 8 characters.</div>
+        </div>
+        <div class="form-row">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="affiliation">Institution / Affiliation *</label>
+        <input type="text" id="affiliation" name="affiliation" required placeholder="University, hospital, or organization">
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" autocomplete="country-name">
+        </div>
+        <div class="form-row">
+          <label for="orcid">ORCID iD (optional)</label>
+          <input type="text" id="orcid" name="orcid" placeholder="0000-0000-0000-0000">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="journalInterest">Primary Journal of Interest</label>
+        <select id="journalInterest" name="journalInterest">
+          <option value="unsure">Not sure yet</option>
+          <option value="alstm">Advanced Life Sciences &amp; Translational Medicine</option>
+          <option value="ipsb">Interdisciplinary Physical Sciences &amp; Bioengineering</option>
+          <option value="ghesb">Global Health, Environment &amp; Sustainable Biosciences</option>
+          <option value="jec">Journal of Engineering Confluence</option>
+          <option value="jtim">Journal of Translational &amp; Integrated Medicine</option>
+          <option value="jsamp">Journal of Strategic Advisory &amp; Management Practice</option>
+          <option value="acfdi">Annals of Computational Frontiers &amp; Digital Intelligence</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label class="form-check">
+          <input type="checkbox" id="terms" required>
+          <span>I agree to Aaranya Scholarly's publication ethics policy and confirm the information provided is accurate. *</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-navy btn-block" id="submitBtn">Create Account</button>
+    </form>
+
+    <div class="auth-switch">Already have an account? <a href="login.html">Log in</a></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  const form = document.getElementById('registerForm');
+  const alertBox = document.getElementById('formAlert');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function showAlert(message, type){
+    alertBox.textContent = message;
+    alertBox.className = 'form-alert show' + (type ? ' ' + type : '');
+  }
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    alertBox.className = 'form-alert';
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const affiliation = document.getElementById('affiliation').value.trim();
+    const country = document.getElementById('country').value.trim();
+    const orcid = document.getElementById('orcid').value.trim();
+    const journalInterest = document.getElementById('journalInterest').value;
+    const terms = document.getElementById('terms').checked;
+
+    if (!name || !email || !password || !affiliation) {
+      showAlert('Please fill in all required fields.', 'error');
+      return;
+    }
+    if (password.length < 8) {
+      showAlert('Password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      showAlert('Passwords do not match.', 'error');
+      return;
+    }
+    if (!terms) {
+      showAlert('Please accept the publication ethics policy to continue.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account…';
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, affiliation, country, orcid, journalInterest }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert(data.error || 'Registration failed. Please try again.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+      window.AaranyaAuth.saveSession(data.token, data.user);
+      showAlert('Account created! Redirecting to your dashboard…', 'success');
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next');
+      setTimeout(function(){
+        window.location.href = next ? next : 'dashboard.html';
+      }, 700);
+    } catch (err) {
+      showAlert('Could not reach the server. Is the site running with "npm start"?', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+    }
+  });
+
+  // Pre-select journal of interest if arriving from a specific journal page
+  const params = new URLSearchParams(window.location.search);
+  const j = params.get('journal');
+  if (j) {
+    const sel = document.getElementById('journalInterest');
+    if (sel.querySelector('option[value="' + j + '"]')) sel.value = j;
+  }
+})();
+</script>
+</body>
+</html>

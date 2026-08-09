@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit a Manuscript | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* Manuscript assistant panel. Deliberately quieter than the rest of the form:
+   it is optional, and it should not compete for attention with the fields
+   that are actually required to submit. */
+.ai-box{border:1px solid #dbe3ea;border-left:3px solid #c8912a;border-radius:6px;
+  background:#fbfaf7;padding:18px 20px}
+.ai-optional{font-weight:400;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;
+  color:#7d8a96;margin-left:8px}
+.ai-lead{margin:0 0 10px;font-size:.93rem;line-height:1.6;color:#33424f}
+.ai-note{margin:0 0 14px;font-size:.86rem;line-height:1.6;color:#5b6875;
+  background:#fff;border:1px solid #e6ebf0;border-radius:4px;padding:10px 12px}
+.ai-note strong{color:#0b3350}
+.ai-consent label{display:flex;gap:9px;align-items:flex-start;font-size:.86rem;
+  line-height:1.55;color:#33424f;cursor:pointer}
+.ai-consent input{margin-top:3px;flex:none}
+.ai-more{margin:10px 0 0;font-size:.83rem;line-height:1.6;color:#5b6875;
+  border-left:2px solid #dbe3ea;padding-left:12px}
+.ai-more p{margin:0 0 8px}
+.ai-actions{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.ai-quota{font-size:.8rem;color:#7d8a96}
+.ai-result{margin-top:16px}
+.ai-result:empty{margin-top:0}
+.ai-status{font-size:.88rem;color:#5b6875;padding:10px 0}
+.ai-summary{background:#fff;border:1px solid #e6ebf0;border-radius:5px;padding:14px 16px;
+  font-size:.9rem;line-height:1.6;color:#33424f;margin-bottom:14px}
+.ai-summary h4{margin:0 0 7px;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;
+  color:#0b3350}
+.ai-meta{font-size:.78rem;color:#7d8a96;margin-top:9px}
+.ai-strengths{margin:9px 0 0;padding-left:18px;font-size:.87rem;color:#4a6b52}
+.ai-finding{background:#fff;border:1px solid #e6ebf0;border-left:3px solid #b9c4cd;
+  border-radius:4px;padding:11px 14px;margin-bottom:9px}
+.ai-finding.sev-likely_required{border-left-color:#b4472f}
+.ai-finding.sev-worth_addressing{border-left-color:#c8912a}
+.ai-finding.sev-suggestion{border-left-color:#8fa3b3}
+.ai-finding-head{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px}
+.ai-tag{font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;
+  padding:2px 7px;border-radius:3px;background:#eef2f6;color:#5b6875}
+.ai-tag.sev-likely_required{background:#f7e8e4;color:#95371f}
+.ai-tag.sev-worth_addressing{background:#f8f0dd;color:#8a6414}
+.ai-loc{font-size:.79rem;color:#7d8a96}
+.ai-issue{font-size:.89rem;line-height:1.6;color:#33424f;margin:0 0 5px}
+.ai-fix{font-size:.87rem;line-height:1.6;color:#5b6875;margin:0}
+.ai-fix strong{color:#0b3350;font-weight:600}
+.ai-group-title{font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;color:#7d8a96;
+  margin:16px 0 8px}
+.ai-error{font-size:.88rem;color:#95371f;background:#f9efec;border:1px solid #f0d9d2;
+  border-radius:4px;padding:10px 13px}
+.ai-clean{font-size:.9rem;color:#3f6b4a;background:#eef5ef;border:1px solid #d6e5da;
+  border-radius:4px;padding:12px 14px}
+</style>
+</head>
+<body data-base="./">
+
+<!-- Utility bar -->
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="dashboard.html">← My Dashboard</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Submit a Manuscript</h1>
+      <div class="meta-line">A five-step submission — journal &amp; type, details, authors, files &amp; declarations, then review.</div>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap wide">
+  <div class="auth-card">
+    <div class="sub" style="margin-bottom:20px;">Submitting as <b id="submittingAs">…</b>. Not you? <a href="#" id="switchAccount" style="color:var(--teal);font-weight:600;">Log out</a>.</div>
+
+    <ol class="wizard-steps" id="wizardSteps">
+      <li class="active" data-step="1"><div class="dot">1</div>Journal &amp; Type</li>
+      <li data-step="2"><div class="dot">2</div>Manuscript</li>
+      <li data-step="3"><div class="dot">3</div>Authors</li>
+      <li data-step="4"><div class="dot">4</div>Files &amp; Declarations</li>
+      <li data-step="5"><div class="dot">5</div>Review &amp; Submit</li>
+    </ol>
+
+    <div id="formAlert" class="form-alert"></div>
+
+    <form id="submitForm" novalidate>
+
+      <!-- Step 1: Journal & Type -->
+      <div class="wizard-panel active" data-panel="1">
+        <div class="form-row">
+          <label for="journalCode">Journal *</label>
+          <select id="journalCode" name="journalCode" required>
+            <option value="">Select a journal…</option>
+            <option value="alstm">Advanced Life Sciences &amp; Translational Medicine</option>
+            <option value="ipsb">Interdisciplinary Physical Sciences &amp; Bioengineering</option>
+            <option value="ghesb">Global Health, Environment &amp; Sustainable Biosciences</option>
+            <option value="jec">Journal of Engineering Confluence</option>
+            <option value="jtim">Journal of Translational &amp; Integrated Medicine</option>
+            <option value="jsamp">Journal of Strategic Advisory &amp; Management Practice</option>
+            <option value="acfdi">Annals of Computational Frontiers &amp; Digital Intelligence</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="articleType">Article Type *</label>
+          <select id="articleType" name="articleType" required>
+            <option value="">Select an article type…</option>
+            <option>Original Research Article</option>
+            <option>Review Article</option>
+            <option>Short Communication</option>
+            <option>Case Report</option>
+            <option>Systematic Review / Meta-Analysis</option>
+            <option>Editorial / Perspective</option>
+            <option>Letter to the Editor</option>
+            <option>Technical Note / Protocol</option>
+            <option>Data Paper</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="subjectArea">Subject Area (optional)</label>
+          <input type="text" id="subjectArea" name="subjectArea" placeholder="e.g. Molecular Biology, Cybersecurity, Corporate Strategy">
+        </div>
+      </div>
+
+      <!-- Step 2: Manuscript Details -->
+      <div class="wizard-panel" data-panel="2">
+        <div class="form-row">
+          <label for="title">Manuscript Title *</label>
+          <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-row">
+          <label for="abstract">Abstract *</label>
+          <textarea id="abstract" name="abstract" required style="min-height:140px;"></textarea>
+          <div class="hint"><span id="abstractCount">0</span> characters (minimum 50).</div>
+        </div>
+        <div class="form-row">
+          <label for="keywords">Keywords</label>
+          <input type="text" id="keywords" name="keywords" placeholder="Comma-separated, e.g. genomics, machine learning, diagnostics">
+        </div>
+      </div>
+
+      <!-- Step 3: Authors -->
+      <div class="wizard-panel" data-panel="3">
+        <div class="form-row">
+          <label>Corresponding Author *</label>
+          <div class="repeat-row" style="background:#fff;">
+            <div class="form-grid-2">
+              <div class="form-row" style="margin-bottom:10px;">
+                <label for="corrName">Full Name *</label>
+                <input type="text" id="corrName" required>
+              </div>
+              <div class="form-row" style="margin-bottom:10px;">
+                <label for="corrEmail">Email *</label>
+                <input type="email" id="corrEmail" required>
+              </div>
+            </div>
+            <div class="form-row" style="margin-bottom:0;">
+              <label for="corrAffiliation">Affiliation</label>
+              <input type="text" id="corrAffiliation">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Co-Authors (optional)</label>
+          <div id="coAuthorRows"></div>
+          <button type="button" class="add-row-btn" id="addCoAuthor">+ Add Co-Author</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Files & Declarations -->
+      <div class="wizard-panel" data-panel="4">
+        <div class="form-row">
+          <label for="manuscript">Manuscript File *</label>
+          <input type="file" id="manuscript" name="manuscript" required accept=".pdf,.doc,.docx">
+          <div class="hint">PDF or Word document, up to 25 MB.</div>
+        </div>
+
+        <!-- Optional pre-submission check. Hidden entirely unless the server
+             reports the assistant is configured, so a disabled feature is
+             invisible rather than a button that always fails. -->
+        <div class="form-row ai-panel" id="aiPanel" style="display:none;">
+          <label>Manuscript Assistant <span class="ai-optional">Optional</span></label>
+          <div class="ai-box">
+            <p class="ai-lead">
+              Before you submit, you can have an AI assistant read your manuscript and
+              point out formatting problems, spelling and grammar slips, and places where
+              the methods or results look incomplete — a missing sample size, an unnamed
+              statistical test, an aim with no matching result.
+            </p>
+            <p class="ai-note">
+              <strong>What this is not.</strong> It is not peer review and it plays no part
+              in the editorial decision. Nothing it says is shown to your editor or
+              reviewers, and nothing it says is stored against your submission. Ignoring
+              it entirely will not count against you.
+            </p>
+            <div class="ai-consent">
+              <label>
+                <input type="checkbox" id="aiConsent">
+                <span>
+                  I understand my manuscript will be sent to Google's Gemini model through
+                  Vertex AI in Google Cloud (Mumbai region) to produce this check. Under
+                  Vertex AI's terms, Google does not use it to train its models and does not
+                  retain it. <a href="#" id="aiMoreLink">More detail</a>
+                </span>
+              </label>
+            </div>
+            <div class="ai-more" id="aiMore" style="display:none;">
+              <p>
+                The check runs inside Aaranya Scholarly's own Google Cloud project. Your
+                file is sent over an encrypted connection, processed, and the result
+                returned — it is not added to any training set, not reviewed by anyone at
+                Google, and not stored by us beyond your browser session.
+              </p>
+              <p>
+                We deliberately use Vertex AI rather than the free consumer Gemini service,
+                because the consumer terms permit Google to use submitted content for
+                product improvement. That would be inappropriate for unpublished research.
+              </p>
+              <p>
+                If your co-authors, funder or institution have not agreed to your
+                manuscript being processed this way, do not run the check. Your submission
+                is unaffected either way.
+              </p>
+            </div>
+            <div class="ai-actions">
+              <button type="button" class="btn btn-ghost" id="aiRunBtn">Check my manuscript</button>
+              <span class="ai-quota" id="aiQuota"></span>
+            </div>
+            <div class="ai-result" id="aiResult"></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="supplementary">Supplementary Files (optional)</label>
+          <input type="file" id="supplementary" name="supplementary" accept=".pdf,.doc,.docx" multiple>
+          <div class="hint">Up to 5 additional files — data, figures, appendices (PDF or Word).</div>
+        </div>
+        <div class="form-row">
+          <label for="coverLetter">Cover Letter (optional)</label>
+          <textarea id="coverLetter" placeholder="Brief note to the Editor-in-Chief"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Suggested Reviewers (optional)</label>
+          <div id="reviewerRows"></div>
+          <button type="button" class="add-row-btn" id="addReviewer">+ Add Suggested Reviewer</button>
+        </div>
+
+        <div class="form-row">
+          <label>Declarations *</label>
+          <div class="declaration-box">
+            <label><input type="checkbox" id="declOriginality" required><span>I confirm this manuscript is original, has not been published elsewhere, and is not currently under consideration by another journal.</span></label>
+          </div>
+          <div class="declaration-box">
+            <label><input type="checkbox" id="declEthics" required><span>I confirm this submission complies with Aaranya Scholarly's publication ethics policy, including proper attribution and disclosure.</span></label>
+          </div>
+          <div class="form-row">
+            <label for="ethicsApprovalDetails">Ethical Approval Details (if applicable)</label>
+            <input type="text" id="ethicsApprovalDetails" placeholder="e.g. IRB/IEC approval number, or 'Not applicable'">
+          </div>
+          <div class="form-row" style="margin-bottom:0;">
+            <label for="conflictOfInterest">Conflict of Interest Statement</label>
+            <textarea id="conflictOfInterest">The authors declare no conflict of interest.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Review & Submit -->
+      <div class="wizard-panel" data-panel="5">
+        <div id="reviewSummary"></div>
+      </div>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn btn-ghost" id="backBtn" style="display:none;">← Back</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-navy" id="nextBtn">Next →</button>
+        <button type="submit" class="btn btn-navy" id="submitBtn" style="display:none;">Submit Manuscript</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+
+  const JOURNAL_NAMES = {
+    alstm: 'Advanced Life Sciences & Translational Medicine',
+    ipsb: 'Interdisciplinary Physical Sciences & Bioengineering',
+    ghesb: 'Global Health, Environment & Sustainable Biosciences',
+    jec: 'Journal of Engineering Confluence',
+    jtim: 'Journal of Translational & Integrated Medicine',
+    jsamp: 'Journal of Strategic Advisory & Management Practice',
+    acfdi: 'Annals of Computational Frontiers & Digital Intelligence',
+  };
+
+  const user = window.AaranyaAuth.getUser();
+  document.getElementById('submittingAs').textContent = user.name + ' (' + user.email + ')';
+  document.getElementById('switchAccount').addEventListener('click', function(e){
+    e.preventDefault();
+    window.AaranyaAuth.logout('login.html');
+  });
+
+  // Pre-fill corresponding author from account, preselect journal from ?journal=CODE
+  document.getElementById('corrName').value = user.name || '';
+  document.getElementById('corrEmail').value = user.email || '';
+  document.getElementById('corrAffiliation').value = user.affiliation || '';
+
+  const params = new URLSearchParams(window.location.search);
+  const journalParam = params.get('journal');
+  if (journalParam) {
+    const sel = document.getElementById('journalCode');
+    if (sel.querySelector('option[value="' + journalParam + '"]')) sel.value = journalParam;
+  }
+
+  // ---------- Wizard navigation ----------
+  const TOTAL_STEPS = 5;
+  let currentStep = 1;
+  const stepsList = document.getElementById('wizardSteps');
+  const panels = document.querySelectorAll('.wizard-panel');
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const alertBox = document.getElementById('formAlert');
+
+  function showAlert(message, type){
+    alertBox.textContent = message;
+    alertBox.className = 'form-alert show' + (type ? ' ' + type : '');
+  }
+  function clearAlert(){ alertBox.className = 'form-alert'; }
+
+  function renderStepIndicator(){
+    stepsList.querySelectorAll('li').forEach(function(li){
+      const step = parseInt(li.getAttribute('data-step'), 10);
+      li.classList.toggle('active', step === currentStep);
+      li.classList.toggle('done', step < currentStep);
+    });
+  }
+
+  function goToStep(step){
+    panels.forEach(function(p){
+      p.classList.toggle('active', parseInt(p.getAttribute('data-panel'), 10) === step);
+    });
+    currentStep = step;
+    renderStepIndicator();
+    backBtn.style.display = step === 1 ? 'none' : 'inline-block';
+    nextBtn.style.display = step === TOTAL_STEPS ? 'none' : 'inline-block';
+    submitBtn.style.display = step === TOTAL_STEPS ? 'inline-block' : 'none';
+    nextBtn.textContent = step === TOTAL_STEPS - 1 ? 'Review →' : 'Next →';
+    if (step === TOTAL_STEPS) renderReview();
+    window.scrollTo({ top: document.querySelector('.auth-card').offsetTop - 20, behavior: 'smooth' });
+  }
+
+  function validateStep(step){
+    clearAlert();
+    if (step === 1) {
+      if (!document.getElementById('journalCode').value) { showAlert('Please select a journal.', 'error'); return false; }
+      if (!document.getElementById('articleType').value) { showAlert('Please select an article type.', 'error'); return false; }
+    }
+    if (step === 2) {
+      if (!document.getElementById('title').value.trim()) { showAlert('Please enter a manuscript title.', 'error'); return false; }
+      if (document.getElementById('abstract').value.trim().length < 50) { showAlert('Abstract must be at least 50 characters.', 'error'); return false; }
+    }
+    if (step === 3) {
+      if (!document.getElementById('corrName').value.trim() || !document.getElementById('corrEmail').value.trim()) {
+        showAlert('Corresponding author name and email are required.', 'error'); return false;
+      }
+    }
+    if (step === 4) {
+      if (!document.getElementById('manuscript').files.length) { showAlert('Please attach your manuscript file.', 'error'); return false; }
+      if (!document.getElementById('declOriginality').checked) { showAlert('Please confirm the originality declaration.', 'error'); return false; }
+      if (!document.getElementById('declEthics').checked) { showAlert('Please confirm the publication ethics declaration.', 'error'); return false; }
+    }
+    return true;
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if (!validateStep(currentStep)) return;
+    if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+  });
+  backBtn.addEventListener('click', function(){
+    clearAlert();
+    if (currentStep > 1) goToStep(currentStep - 1);
+  });
+  // Let users click a completed step to jump back
+  stepsList.querySelectorAll('li').forEach(function(li){
+    li.addEventListener('click', function(){
+      const step = parseInt(li.getAttribute('data-step'), 10);
+      if (step < currentStep) goToStep(step);
+    });
+    li.style.cursor = 'pointer';
+  });
+
+  // ---------- Repeating rows: co-authors & suggested reviewers ----------
+  function addPersonRow(container, opts){
+    const row = document.createElement('div');
+    row.className = 'repeat-row';
+    row.innerHTML =
+      '<button type="button" class="remove-row">Remove ✕</button>' +
+      '<div class="form-grid-2">' +
+        '<div class="form-row" style="margin-bottom:' + (opts.affiliation ? '10px' : '0') + ';"><label>Full Name</label><input type="text" class="p-name"></div>' +
+        '<div class="form-row" style="margin-bottom:' + (opts.affiliation ? '10px' : '0') + ';"><label>Email</label><input type="email" class="p-email"></div>' +
+      '</div>' +
+      (opts.affiliation ? '<div class="form-row" style="margin-bottom:0;"><label>Affiliation</label><input type="text" class="p-affiliation"></div>' : '');
+    row.querySelector('.remove-row').addEventListener('click', function(){ row.remove(); });
+    container.appendChild(row);
+  }
+
+  document.getElementById('addCoAuthor').addEventListener('click', function(){
+    addPersonRow(document.getElementById('coAuthorRows'), { affiliation: true });
+  });
+  document.getElementById('addReviewer').addEventListener('click', function(){
+    addPersonRow(document.getElementById('reviewerRows'), { affiliation: false });
+  });
+
+  function collectRows(container){
+    const rows = [];
+    container.querySelectorAll('.repeat-row').forEach(function(row){
+      const name = row.querySelector('.p-name').value.trim();
+      const email = row.querySelector('.p-email').value.trim();
+      const affiliationEl = row.querySelector('.p-affiliation');
+      if (!name) return;
+      rows.push({ name: name, email: email, affiliation: affiliationEl ? affiliationEl.value.trim() : '' });
+    });
+    return rows;
+  }
+
+  // Abstract character counter
+  const abstractEl = document.getElementById('abstract');
+  const abstractCount = document.getElementById('abstractCount');
+  abstractEl.addEventListener('input', function(){ abstractCount.textContent = abstractEl.value.trim().length; });
+
+  function escapeHtml(str){
+    return String(str || '').replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  // ---------- Manuscript assistant (optional, advisory) ----------
+  //
+  // Every failure path here ends in a message and nothing else. The assistant
+  // must never be able to stop someone submitting a paper, so it touches no
+  // form state, disables no controls outside its own panel, and never calls
+  // preventDefault on the submit.
+  (function(){
+    const panel   = document.getElementById('aiPanel');
+    const consent = document.getElementById('aiConsent');
+    const runBtn  = document.getElementById('aiRunBtn');
+    const quotaEl = document.getElementById('aiQuota');
+    const resultEl= document.getElementById('aiResult');
+    const moreLink= document.getElementById('aiMoreLink');
+    const moreBox = document.getElementById('aiMore');
+    const token   = window.AaranyaAuth.getToken();
+
+    moreLink.addEventListener('click', function(e){
+      e.preventDefault();
+      const open = moreBox.style.display !== 'none';
+      moreBox.style.display = open ? 'none' : 'block';
+      moreLink.textContent = open ? 'More detail' : 'Less detail';
+    });
+
+    function setQuota(used, perDay){
+      if (typeof used !== 'number') { quotaEl.textContent = ''; return; }
+      const left = Math.max(0, perDay - used);
+      quotaEl.textContent = left + ' of ' + perDay + ' checks left today';
+    }
+
+    // Ask the server whether the feature is on. If anything goes wrong the
+    // panel simply stays hidden — an author who never sees it is better off
+    // than one who sees a button that errors.
+    fetch('/api/assistant/status', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if (!d || !d.available) return;
+        panel.style.display = '';
+        setQuota(d.checksUsed, d.checksPerDay);
+      })
+      .catch(function(){ /* leave hidden */ });
+
+    const SEVERITY_LABEL = {
+      likely_required: 'Likely required',
+      worth_addressing: 'Worth addressing',
+      suggestion: 'Suggestion'
+    };
+    const CATEGORY_LABEL = {
+      structure:'Structure', language:'Language', formatting:'Formatting',
+      methods:'Methods', results:'Results', statistics:'Statistics',
+      ethics:'Ethics', references:'References'
+    };
+
+    function renderFinding(f){
+      return '<div class="ai-finding sev-' + f.severity + '">' +
+        '<div class="ai-finding-head">' +
+          '<span class="ai-tag sev-' + f.severity + '">' + escapeHtml(SEVERITY_LABEL[f.severity] || f.severity) + '</span>' +
+          '<span class="ai-tag">' + escapeHtml(CATEGORY_LABEL[f.category] || f.category) + '</span>' +
+          '<span class="ai-loc">' + escapeHtml(f.location) + '</span>' +
+        '</div>' +
+        '<p class="ai-issue">' + escapeHtml(f.issue) + '</p>' +
+        (f.suggestion ? '<p class="ai-fix"><strong>Suggested fix:</strong> ' + escapeHtml(f.suggestion) + '</p>' : '') +
+      '</div>';
+    }
+
+    function renderReport(rep){
+      let html = '<div class="ai-summary">' +
+        '<h4>What to look at first</h4>' +
+        escapeHtml(rep.summary || 'No summary was returned.');
+      if (rep.strengths && rep.strengths.length){
+        html += '<ul class="ai-strengths">' +
+          rep.strengths.map(function(s){ return '<li>' + escapeHtml(s) + '</li>'; }).join('') +
+        '</ul>';
+      }
+      html += '<div class="ai-meta">Checked against: ' + escapeHtml(rep.checkedAgainst) +
+        ' · These are suggestions only and form no part of the editorial decision.</div>' +
+      '</div>';
+
+      if (!rep.findings.length){
+        html += '<div class="ai-clean">The assistant did not find anything that needs ' +
+          'attention. That is a check on presentation and completeness only — it says ' +
+          'nothing about how the work will be assessed in peer review.</div>';
+        resultEl.innerHTML = html;
+        return;
+      }
+
+      // Grouped by severity so the things most likely to come back from the
+      // editorial office sit at the top.
+      ['likely_required','worth_addressing','suggestion'].forEach(function(sev){
+        const group = rep.findings.filter(function(f){ return f.severity === sev; });
+        if (!group.length) return;
+        html += '<div class="ai-group-title">' + escapeHtml(SEVERITY_LABEL[sev]) +
+          ' (' + group.length + ')</div>' + group.map(renderFinding).join('');
+      });
+      resultEl.innerHTML = html;
+    }
+
+    runBtn.addEventListener('click', function(){
+      const file = document.getElementById('manuscript').files[0];
+      if (!file){
+        resultEl.innerHTML = '<div class="ai-error">Please attach your manuscript file above first.</div>';
+        return;
+      }
+      if (!consent.checked){
+        resultEl.innerHTML = '<div class="ai-error">Please tick the consent box before running the check.</div>';
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('manuscript', file);
+      fd.append('consent', 'true');
+      fd.append('journalCode', document.getElementById('journalCode').value);
+      fd.append('articleType', document.getElementById('articleType').value);
+      fd.append('title', document.getElementById('title').value.trim());
+      fd.append('abstract', document.getElementById('abstract').value.trim());
+      fd.append('keywords', document.getElementById('keywords').value.trim());
+
+      runBtn.disabled = true;
+      runBtn.textContent = 'Reading your manuscript…';
+      resultEl.innerHTML = '<div class="ai-status">This usually takes 20–60 seconds for a ' +
+        'full paper. You can carry on filling in the rest of the form while it runs.</div>';
+
+      fetch('/api/assistant/check', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: fd
+      })
+        .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+        .then(function(res){
+          if (!res.ok){
+            resultEl.innerHTML = '<div class="ai-error">' +
+              escapeHtml((res.d && res.d.error) || 'The check could not be completed.') + '</div>';
+            return;
+          }
+          renderReport(res.d.report);
+          setQuota(res.d.checksUsed, res.d.checksPerDay);
+        })
+        .catch(function(){
+          resultEl.innerHTML = '<div class="ai-error">The check could not be completed. ' +
+            'This does not affect your submission.</div>';
+        })
+        .then(function(){
+          runBtn.disabled = false;
+          runBtn.textContent = 'Check my manuscript';
+        });
+    });
+  })();
+
+  function renderReview(){
+    const journalCode = document.getElementById('journalCode').value;
+    const articleType = document.getElementById('articleType').value;
+    const subjectArea = document.getElementById('subjectArea').value.trim();
+    const title = document.getElementById('title').value.trim();
+    const abstract = document.getElementById('abstract').value.trim();
+    const keywords = document.getElementById('keywords').value.trim();
+    const corrName = document.getElementById('corrName').value.trim();
+    const corrEmail = document.getElementById('corrEmail').value.trim();
+    const corrAffiliation = document.getElementById('corrAffiliation').value.trim();
+    const coAuthors = collectRows(document.getElementById('coAuthorRows'));
+    const reviewers = collectRows(document.getElementById('reviewerRows'));
+    const manuscriptFile = document.getElementById('manuscript').files[0];
+    const supplementaryFiles = Array.from(document.getElementById('supplementary').files || []);
+    const coverLetter = document.getElementById('coverLetter').value.trim();
+    const conflictOfInterest = document.getElementById('conflictOfInterest').value.trim();
+    const ethicsApprovalDetails = document.getElementById('ethicsApprovalDetails').value.trim();
+
+    let html = '';
+    html += '<div class="review-block"><h4>Journal &amp; Type</h4><dl>' +
+      '<dt>Journal</dt><dd>' + escapeHtml(JOURNAL_NAMES[journalCode] || '—') + '</dd>' +
+      '<dt>Article Type</dt><dd>' + escapeHtml(articleType || '—') + '</dd>' +
+      (subjectArea ? '<dt>Subject Area</dt><dd>' + escapeHtml(subjectArea) + '</dd>' : '') +
+      '</dl></div>';
+
+    html += '<div class="review-block"><h4>Manuscript</h4><dl>' +
+      '<dt>Title</dt><dd>' + escapeHtml(title) + '</dd>' +
+      '<dt>Abstract</dt><dd>' + escapeHtml(abstract.slice(0, 260)) + (abstract.length > 260 ? '…' : '') + '</dd>' +
+      (keywords ? '<dt>Keywords</dt><dd>' + escapeHtml(keywords) + '</dd>' : '') +
+      '</dl></div>';
+
+    let authorsHtml = '<dt>Corresponding Author</dt><dd>' + escapeHtml(corrName) + ' — ' + escapeHtml(corrEmail) + (corrAffiliation ? ' (' + escapeHtml(corrAffiliation) + ')' : '') + '</dd>';
+    if (coAuthors.length) {
+      authorsHtml += '<dt>Co-Authors</dt><dd>' + coAuthors.map(function(a){
+        return escapeHtml(a.name) + (a.email ? ' — ' + escapeHtml(a.email) : '') + (a.affiliation ? ' (' + escapeHtml(a.affiliation) + ')' : '');
+      }).join('<br>') + '</dd>';
+    }
+    html += '<div class="review-block"><h4>Authors</h4><dl>' + authorsHtml + '</dl></div>';
+
+    let filesHtml = '<span class="file-chip">📄 ' + escapeHtml(manuscriptFile ? manuscriptFile.name : 'No file selected') + '</span>';
+    supplementaryFiles.forEach(function(f){ filesHtml += '<span class="file-chip">📎 ' + escapeHtml(f.name) + '</span>'; });
+    html += '<div class="review-block"><h4>Files &amp; Declarations</h4><dl>' +
+      '<dt>Files</dt><dd>' + filesHtml + '</dd>' +
+      (coverLetter ? '<dt>Cover Letter</dt><dd>' + escapeHtml(coverLetter) + '</dd>' : '') +
+      (reviewers.length ? '<dt>Suggested Reviewers</dt><dd>' + reviewers.map(function(r){ return escapeHtml(r.name) + (r.email ? ' — ' + escapeHtml(r.email) : ''); }).join('<br>') + '</dd>' : '') +
+      '<dt>Originality &amp; Ethics</dt><dd>Confirmed by author</dd>' +
+      (ethicsApprovalDetails ? '<dt>Ethical Approval</dt><dd>' + escapeHtml(ethicsApprovalDetails) + '</dd>' : '') +
+      '<dt>Conflict of Interest</dt><dd>' + escapeHtml(conflictOfInterest) + '</dd>' +
+      '</dl></div>';
+
+    document.getElementById('reviewSummary').innerHTML = html;
+  }
+
+  goToStep(1);
+
+  // ---------- Final submit ----------
+  const form = document.getElementById('submitForm');
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
+      showAlert('Please complete all required fields before submitting.', 'error');
+      return;
+    }
+
+    const correspondingAuthor = {
+      name: document.getElementById('corrName').value.trim(),
+      email: document.getElementById('corrEmail').value.trim(),
+      affiliation: document.getElementById('corrAffiliation').value.trim(),
+    };
+    const declarations = {
+      originality: document.getElementById('declOriginality').checked,
+      ethicsCompliance: document.getElementById('declEthics').checked,
+      ethicsApprovalDetails: document.getElementById('ethicsApprovalDetails').value.trim(),
+      conflictOfInterest: document.getElementById('conflictOfInterest').value.trim(),
+    };
+
+    const fd = new FormData();
+    fd.append('journalCode', document.getElementById('journalCode').value);
+    fd.append('articleType', document.getElementById('articleType').value);
+    fd.append('subjectArea', document.getElementById('subjectArea').value.trim());
+    fd.append('title', document.getElementById('title').value.trim());
+    fd.append('abstract', document.getElementById('abstract').value.trim());
+    fd.append('keywords', document.getElementById('keywords').value.trim());
+    fd.append('coverLetter', document.getElementById('coverLetter').value.trim());
+    fd.append('correspondingAuthor', JSON.stringify(correspondingAuthor));
+    fd.append('coAuthorsList', JSON.stringify(collectRows(document.getElementById('coAuthorRows'))));
+    fd.append('suggestedReviewers', JSON.stringify(collectRows(document.getElementById('reviewerRows'))));
+    fd.append('declarations', JSON.stringify(declarations));
+
+    const manuscriptFile = document.getElementById('manuscript').files[0];
+    if (manuscriptFile) fd.append('manuscript', manuscriptFile);
+    Array.from(document.getElementById('supplementary').files || []).forEach(function(f){
+      fd.append('supplementary', f);
+    });
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    try {
+      const res = await window.AaranyaAuth.apiFetch('/api/submissions', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert(data.error || 'Submission failed. Please try again.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Manuscript';
+        return;
+      }
+      showAlert('Manuscript submitted! Redirecting to your dashboard…', 'success');
+      setTimeout(function(){ window.location.href = 'dashboard.html'; }, 900);
+    } catch (err) {
+      showAlert('Could not reach the server. Is the site running with "npm start"?', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Manuscript';
+    }
+  });
+})();
+</script>
+</body>
+</html>

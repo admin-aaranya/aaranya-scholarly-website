@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Author Login | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<!-- Utility bar -->
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="index.html">← Aaranya Scholarly LLP</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Author Login</h1>
+      <div class="meta-line">Log in to submit manuscripts and track their status across all Aaranya Scholarly journals.</div>
+    </div>
+  </div>
+</header>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Welcome back</h2>
+    <div class="sub">New here? <a href="register.html" style="color:var(--teal);font-weight:600;">Create an author account</a>.</div>
+
+    <div id="formAlert" class="form-alert"></div>
+
+    <form id="loginForm" novalidate>
+      <div class="form-row">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+      <div class="form-row">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+        <div class="hint">Forgot your password? Contact <span style="color:var(--teal);">info@aaranyascholarly.com</span> for help.</div>
+      </div>
+      <button type="submit" class="btn btn-navy btn-block" id="submitBtn">Log In</button>
+    </form>
+
+    <div class="auth-switch">Don't have an account? <a href="register.html">Register as an author</a></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  const form = document.getElementById('loginForm');
+  const alertBox = document.getElementById('formAlert');
+  const submitBtn = document.getElementById('submitBtn');
+
+  function showAlert(message, type){
+    alertBox.textContent = message;
+    alertBox.className = 'form-alert show' + (type ? ' ' + type : '');
+  }
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    alertBox.className = 'form-alert';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) {
+      showAlert('Please enter your email and password.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Logging in…';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert(data.error || 'Login failed.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log In';
+        return;
+      }
+      window.AaranyaAuth.saveSession(data.token, data.user);
+      showAlert('Logged in! Redirecting…', 'success');
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next');
+      setTimeout(function(){
+        window.location.href = next ? next : 'dashboard.html';
+      }, 500);
+    } catch (err) {
+      showAlert('Could not reach the server. Is the site running with "npm start"?', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Log In';
+    }
+  });
+})();
+</script>
+</body>
+</html>

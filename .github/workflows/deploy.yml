@@ -1,0 +1,74 @@
+name: Deploy to Cloud Run
+
+# Runs on every push to main. Requires one-time GCP setup first --
+# see docs/gcp-deploy-setup.md. That setup creates:
+#   - an Artifact Registry repo to hold built images
+#   - a deploy service account, scoped to just this app (no owner/admin creds)
+#   - a Workload Identity Federation pool/provider so this workflow can
+#     authenticate to GCP without a long-lived JSON key stored in GitHub
+#
+# Required repo configuration (Settings -> Secrets and variables -> Actions):
+#   Variables: GCP_PROJECT_ID, GCP_REGION, AR_REPO, CLOUD_RUN_SERVICE
+#   Secrets:   WIF_PROVIDER, WIF_SERVICE_ACCOUNT
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write # required for Workload Identity Federation
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Gate the deploy on the workflow tests -- these cover the editorial
+      # stage transitions and the double-anonymous review guarantees, and
+      # need no GCP credentials to run.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: npm test
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: |
+          IMAGE="${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.AR_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Push image
+        run: docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --image "$IMAGE" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+        # Note: env vars and secret bindings (GCS_BUCKET, JWT_SECRET) are set
+        # once via the one-time setup in docs/gcp-deploy-setup.md and are
+        # carried forward automatically on subsequent deploys -- this step
+        # only needs to know which image to run.

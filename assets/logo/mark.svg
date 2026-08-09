@@ -1,0 +1,23 @@
+<!--
+  Aaranya Scholarly mark — navy variant.
+
+  Recoloured from the original brand SVG (forest green #14342B / gold #B08D3F)
+  to the site palette, so the logo sits correctly against the existing navy
+  header rather than reading as a different brand.
+
+    #14342B  becomes  #0b3350  (the site navy)
+    #B08D3F  becomes  #c8912a  (the site gold)
+
+  Geometry is untouched: three overlapping leaf forms above a rule and seed,
+  exactly as designed. Keep this file and the original in step if the mark
+  itself is ever redrawn.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 116" width="120" height="116" role="img" aria-label="Aaranya Scholarly">
+  <g fill="none" stroke="#0b3350" stroke-width="3.2" stroke-linejoin="round">
+    <path d="M60 92C50 78 50 58 60 42C70 58 70 78 60 92Z" transform="rotate(-40 60 92)"/>
+    <path d="M60 92C44 72 44 42 60 18C76 42 76 72 60 92Z" transform="rotate(-6 60 92)"/>
+    <path d="M60 92C48 76 48 50 60 32C72 50 72 76 60 92Z" transform="rotate(30 60 92)"/>
+  </g>
+  <path d="M34 100h52" stroke="#c8912a" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="60" cy="100" r="4.4" fill="none" stroke="#c8912a" stroke-width="3"/>
+</svg>

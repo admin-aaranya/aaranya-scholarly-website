@@ -1,0 +1,23 @@
+<!--
+  Aaranya Scholarly horizontal lockup — navy variant.
+
+  Mark plus wordmark, for places that need the full identity without
+  surrounding page text: the footer, and any standalone use (letterhead,
+  social preview). NOT used in the page header, where the <h1> already reads
+  "Aaranya Scholarly LLP" and the lockup would repeat it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 150" width="520" height="150" role="img" aria-label="Aaranya Scholarly">
+  <g transform="translate(0,22)">
+    <g fill="none" stroke="#0b3350" stroke-width="3.2" stroke-linejoin="round">
+      <path d="M60 92C50 78 50 58 60 42C70 58 70 78 60 92Z" transform="rotate(-40 60 92)"/>
+      <path d="M60 92C44 72 44 42 60 18C76 42 76 72 60 92Z" transform="rotate(-6 60 92)"/>
+      <path d="M60 92C48 76 48 50 60 32C72 50 72 76 60 92Z" transform="rotate(30 60 92)"/>
+    </g>
+    <path d="M34 100h52" stroke="#c8912a" stroke-width="3.4" stroke-linecap="round"/>
+  </g>
+  <g font-family="Georgia, 'Cormorant Garamond', serif">
+    <text x="170" y="86" font-size="46" font-weight="500" letter-spacing="9.2" fill="#0b3350">AARANYA</text>
+    <text x="172" y="112" font-size="12" letter-spacing="5" fill="#0b3350" opacity=".72">SCHOLARLY</text>
+  </g>
+  <path d="M140 34v90" stroke="#0b3350" stroke-width="1" opacity=".22"/>
+</svg>

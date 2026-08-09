@@ -1,0 +1,22 @@
+# Aaranya Scholarly LLP — journal portfolio
+#
+# Served by Firebase Hosting from the CDN edge. Everything else on this
+# domain is proxied through to the Cloud Run service (see firebase.json).
+#
+# IMPORTANT: do not add an index.html to this folder. Firebase Hosting
+# serves matching static files BEFORE applying rewrites, so an index.html
+# here would shadow the real homepage coming from Cloud Run.
+
+User-agent: *
+Allow: /
+
+# Author accounts, the editorial workflow, and reviewer areas are all
+# behind login and contain personal data — keep them out of search results.
+Disallow: /dashboard.html
+Disallow: /submission.html
+Disallow: /submit.html
+Disallow: /editor.html
+Disallow: /editor-submission.html
+Disallow: /reviewer.html
+Disallow: /review.html
+Disallow: /api/

@@ -1,0 +1,22 @@
+node_modules/
+
+# Local development datastore: user accounts (with password hashes),
+# submissions, uploaded manuscripts, and the generated JWT secret.
+# Never commit this — it's real personal data once you start testing.
+data/
+
+# Names your specific Firebase project; created by `firebase use --add`.
+# Committing it is harmless but makes the repo project-specific.
+.firebaserc
+.firebase/
+
+# Deploy logs
+*.log
+
+# Output written by the launcher scripts: _deploy.txt, _ai-setup.txt,
+# _gemini-model.txt and friends. Transient, machine-specific, sometimes
+# contains project detail that doesn't belong in the repo.
+_*.txt
+
+# FUSE leftovers from editing files over a mounted drive. Transient.
+.fuse_hidden*

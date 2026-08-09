@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<!-- Utility bar -->
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="index.html">← Aaranya Scholarly LLP</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Author Dashboard</h1>
+      <div class="meta-line">Your Aaranya Scholarly account, submissions, and journal access — all in one place.</div>
+    </div>
+    <a class="btn btn-outline" href="#" id="logoutBtn">Log Out</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+
+    <div class="profile-card">
+      <div class="avatar" id="profileAvatar">?</div>
+      <div style="flex:1;">
+        <div class="pname" id="profileName">Loading…</div>
+        <div class="pmeta" id="profileMeta"></div>
+        <div id="roleTags" style="margin-top:8px;"></div>
+      </div>
+      <div id="roleLinks" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="section-head">
+      <h2>My Submissions</h2>
+      <a class="btn btn-gold" href="submit.html">Submit New Manuscript</a>
+    </div>
+
+    <div id="submissionsWrap">
+      <div class="empty-state">
+        <div class="icon">⏳</div>
+        <h3>Loading your submissions…</h3>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--bg-soft);border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head"><h2>Submit to a Journal</h2></div>
+    <div class="jgrid-mini">
+      <a href="submit.html?journal=alstm">ALSTM</a>
+      <a href="submit.html?journal=ipsb">IPSB</a>
+      <a href="submit.html?journal=ghesb">GHESB</a>
+      <a href="submit.html?journal=jec">JEC</a>
+      <a href="submit.html?journal=jtim">JTIM</a>
+      <a href="submit.html?journal=jsamp">JSAMP</a>
+      <a href="submit.html?journal=acfdi">ACFDI</a>
+      <a href="index.html#journals">All Journals →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+
+  const user = window.AaranyaAuth.getUser();
+  document.getElementById('logoutBtn').addEventListener('click', function(e){
+    e.preventDefault();
+    window.AaranyaAuth.logout('index.html');
+  });
+
+  function initials(name){
+    return (name || '?').split(' ').filter(Boolean).slice(0,2).map(function(p){return p[0].toUpperCase();}).join('');
+  }
+
+  function renderProfile(u){
+    document.getElementById('profileAvatar').textContent = initials(u.name);
+    document.getElementById('profileName').textContent = u.name;
+    const bits = [u.email, u.affiliation, u.country].filter(Boolean);
+    document.getElementById('profileMeta').textContent = bits.join(' · ');
+    renderRoles(u);
+  }
+
+  // Show the editor / reviewer areas only to accounts that hold those roles.
+  // Everyone is an author, so that tag is implied rather than displayed.
+  function renderRoles(u){
+    const roles = u.roles || (u.role ? [u.role] : ['author']);
+    const extra = roles.filter(function(r){ return r !== 'author'; });
+
+    document.getElementById('roleTags').innerHTML = extra.map(function(r){
+      return '<span class="role-tag ' + r + '">' + r + '</span>';
+    }).join('');
+
+    let links = '';
+    if (roles.indexOf('editor') !== -1){
+      links += '<a class="btn btn-navy btn-sm" href="editor.html">Editorial Dashboard</a>';
+    }
+    if (roles.indexOf('reviewer') !== -1){
+      links += '<a class="btn btn-ghost btn-sm" href="reviewer.html">My Reviews</a>';
+    }
+    document.getElementById('roleLinks').innerHTML = links;
+  }
+
+  renderProfile(user);
+
+  const STATUS_COLORS = {
+    'Submitted': '#e6f4ea;color:#2e8b4f',
+  };
+
+  function renderSubmissions(list){
+    const wrap = document.getElementById('submissionsWrap');
+    if (!list.length) {
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">📄</div><h3>No submissions yet</h3><p>Once you submit a manuscript to any Aaranya Scholarly journal, it will show up here with its status.</p><a class="btn btn-navy" href="submit.html">Submit Your First Manuscript</a></div>';
+      return;
+    }
+    const rows = list.map(function(s){
+      const date = new Date(s.submittedAt).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+      const fileName = s.manuscript ? s.manuscript.fileName : (s.fileName || '');
+      return '<tr>' +
+        '<td><a href="submission.html?id=' + s.id + '" style="color:var(--navy-dark);font-weight:700;">' + escapeHtml(s.title) + '</a>' +
+        '<div class="hint" style="margin-top:4px;">' + escapeHtml(s.articleType || '') + (fileName ? ' · ' + escapeHtml(fileName) : '') + '</div></td>' +
+        '<td>' + escapeHtml(s.journalName) + '</td>' +
+        '<td>' + date + '</td>' +
+        '<td><span class="status-chip">' + escapeHtml(s.status) + '</span></td>' +
+        '<td><a href="submission.html?id=' + s.id + '" style="color:var(--teal);font-weight:600;">View</a> ·' +
+        ' <a href="/api/submissions/' + s.id + '/file" data-download="' + s.id + '" style="color:var(--teal);font-weight:600;">Download</a></td>' +
+        '</tr>';
+    }).join('');
+    wrap.innerHTML = '<table class="sub-table"><thead><tr><th>Manuscript</th><th>Journal</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+    // Downloads need the auth token, so intercept and fetch as a blob.
+    wrap.querySelectorAll('[data-download]').forEach(function(a){
+      a.addEventListener('click', async function(e){
+        e.preventDefault();
+        const res = await window.AaranyaAuth.apiFetch(a.getAttribute('href'));
+        if (!res.ok) { alert('Could not download this file.'); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str || '').replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  async function loadSubmissions(){
+    try {
+      const res = await window.AaranyaAuth.apiFetch('/api/submissions');
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      renderSubmissions(data.submissions || []);
+    } catch (err) {
+      document.getElementById('submissionsWrap').innerHTML = '<div class="empty-state"><div class="icon">⚠</div><h3>Could not load submissions</h3><p>Check that the site is running with "npm start" and try refreshing.</p></div>';
+    }
+  }
+  loadSubmissions();
+
+  // Refresh profile from server in case it changed elsewhere -- in particular
+  // roles, which an editor may have granted since this session's token was
+  // issued. Re-save so the rest of the app sees the current roles too.
+  window.AaranyaAuth.apiFetch('/api/auth/me').then(function(res){
+    if (res.ok) return res.json().then(function(data){
+      renderProfile(data.user);
+      window.AaranyaAuth.saveSession(window.AaranyaAuth.getToken(), data.user);
+    });
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

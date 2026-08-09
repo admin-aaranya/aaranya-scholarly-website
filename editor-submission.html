@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submission — Editorial | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="editor.html">← Editorial Dashboard</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1 id="subTitle">Loading…</h1>
+      <div class="meta-line" id="subMeta"></div>
+    </div>
+    <a class="btn btn-outline" href="editor.html">Back to Queue</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="form-alert" id="alert"></div>
+    <div id="body" style="display:none;">
+
+      <!-- Manuscript -->
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Manuscript</h3><p class="panel-sub" id="stageLine"></p></div>
+          <div id="fileActions"></div>
+        </div>
+        <div class="meta-grid" id="metaGrid"></div>
+        <div style="margin-top:16px;">
+          <div class="k" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;">Abstract</div>
+          <div style="font-size:13px;color:var(--ink);white-space:pre-wrap;" id="abstractBox"></div>
+        </div>
+        <div id="authorsBox" style="margin-top:16px;"></div>
+        <div id="revisionsBox" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Decision -->
+      <div class="panel">
+        <h3>Editorial Decision</h3>
+        <p class="panel-sub">Recording a decision moves the manuscript to the next stage and notifies the author via their dashboard.</p>
+        <div id="decisionWrap"></div>
+      </div>
+
+      <!-- Reviewers -->
+      <div class="panel">
+        <h3>Peer Review</h3>
+        <p class="panel-sub" id="reviewSub"></p>
+        <div id="assignWrap"></div>
+        <div id="reviewsWrap" style="margin-top:18px;"></div>
+      </div>
+
+      <!-- Copyediting / Production file rounds -->
+      <div class="panel" id="filesPanel" style="display:none;">
+        <h3>Copyediting &amp; Production Files</h3>
+        <p class="panel-sub" id="filesSub"></p>
+        <div id="fileUploadWrap"></div>
+        <div id="stageFilesWrap" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Galleys -->
+      <div class="panel" id="galleyPanel" style="display:none;">
+        <h3>Galleys</h3>
+        <p class="panel-sub">What a reader opens. An article cannot be published without at least one galley.</p>
+        <div id="galleyWrap"></div>
+        <div id="galleyFormsWrap" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Publication metadata -->
+      <div class="panel" id="pubPanel" style="display:none;">
+        <h3>Publication Details</h3>
+        <p class="panel-sub">The issue this article appears in, and the details a citation needs.</p>
+        <div id="pubWrap"></div>
+      </div>
+
+      <!-- History -->
+      <div class="panel">
+        <h3>Editorial History</h3>
+        <p class="panel-sub">Every status change on this manuscript, oldest first.</p>
+        <ul class="timeline" id="historyWrap"></ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+  const A = window.AaranyaAuth;
+  const id = new URLSearchParams(window.location.search).get('id');
+  let state = null;
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  }
+  function fmtDateTime(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  function showAlert(msg, kind){
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = 'form-alert show ' + (kind || 'error');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function clearAlert(){
+    document.getElementById('alert').className = 'form-alert';
+  }
+
+  // Authenticated download (the API needs the bearer token).
+  async function download(url){
+    const res = await A.apiFetch(url);
+    if (!res.ok){ alert('Could not download this file.'); return; }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = m ? decodeURIComponent(m[1]) : '';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(objUrl);
+  }
+  function wireDownloads(root){
+    root.querySelectorAll('[data-dl]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.preventDefault(); download(el.getAttribute('data-dl')); });
+    });
+  }
+
+  // ---- Renderers ----
+
+  function renderHeader(s){
+    document.getElementById('subTitle').textContent = s.title;
+    document.getElementById('subMeta').innerHTML =
+      esc(s.journalName) + ' · ' + esc(s.articleType) +
+      ' · <span class="stage-chip ' + esc(s.stage) + '">' + esc(s.stageLabel) + '</span>';
+    document.getElementById('stageLine').innerHTML =
+      'Currently at the <b>' + esc(s.stageLabel) + '</b> stage' +
+      (s.currentRound ? ', review round ' + s.currentRound : '') +
+      (s.awaitingRevision ? ' — <b>awaiting the author\'s revised file</b>' : '') + '.';
+  }
+
+  function renderMeta(s){
+    const a = s.authorAccount;
+    const rows = [
+      ['Submitted', fmtDate(s.submittedAt)],
+      ['Status', s.status],
+      ['Subject Area', s.subjectArea || '—'],
+      ['Keywords', s.keywords || '—'],
+      ['Submitting Account', a ? a.name + ' (' + a.email + ')' : '—'],
+      ['Affiliation', a ? (a.affiliation || '—') : '—']
+    ];
+    document.getElementById('metaGrid').innerHTML = rows.map(function(r){
+      return '<div><div class="k">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + '</div></div>';
+    }).join('');
+
+    document.getElementById('abstractBox').textContent = s.abstract || '';
+
+    // Files
+    let files = '<a class="btn btn-navy btn-sm" href="#" data-dl="/api/editorial/submissions/' + esc(s.id) + '/file">Download Manuscript</a>';
+    (s.supplementaryFiles || []).forEach(function(f, i){
+      files += ' <a class="btn btn-ghost btn-sm" href="#" data-dl="/api/editorial/submissions/' + esc(s.id) + '/supplementary/' + i + '">' + esc(f.fileName) + '</a>';
+    });
+    document.getElementById('fileActions').innerHTML = files;
+
+    // Authors + declarations (editors see everything)
+    const ca = s.correspondingAuthor || {};
+    let authors = '<div class="k" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px;">Authors</div>';
+    authors += '<div style="font-size:13px;">' + esc(ca.name || '—') + ' <span class="hint">(corresponding'
+      + (ca.email ? ' · ' + esc(ca.email) : '') + (ca.affiliation ? ' · ' + esc(ca.affiliation) : '') + ')</span></div>';
+    (s.coAuthorsList || []).forEach(function(p){
+      authors += '<div style="font-size:13px;">' + esc(p.name) + ' <span class="hint">' +
+        (p.affiliation ? esc(p.affiliation) : '') + '</span></div>';
+    });
+    if (s.coverLetter){
+      authors += '<div class="rc-label">Cover Letter</div><div class="rc-body">' + esc(s.coverLetter) + '</div>';
+    }
+    if (s.declarations && s.declarations.conflictOfInterest){
+      authors += '<div class="rc-label">Conflict of Interest</div><div class="rc-body">' + esc(s.declarations.conflictOfInterest) + '</div>';
+    }
+    if (s.declarations && s.declarations.ethicsApprovalDetails){
+      authors += '<div class="rc-label">Ethical Approval</div><div class="rc-body">' + esc(s.declarations.ethicsApprovalDetails) + '</div>';
+    }
+    if ((s.suggestedReviewers || []).length){
+      authors += '<div class="rc-label">Reviewers Suggested by Author</div><div class="rc-body">' +
+        s.suggestedReviewers.map(function(r){
+          return esc(r.name) + (r.email ? ' — ' + esc(r.email) : '') + (r.affiliation ? ' (' + esc(r.affiliation) + ')' : '');
+        }).join('\n') + '</div>';
+    }
+    document.getElementById('authorsBox').innerHTML = authors;
+
+    // Revisions
+    const revs = s.revisions || [];
+    if (revs.length){
+      document.getElementById('revisionsBox').innerHTML =
+        '<div class="k" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px;">Author Revisions</div>' +
+        revs.map(function(r,i){
+          return '<div style="font-size:13px;margin-bottom:6px;">Round ' + r.round + ' · ' + fmtDate(r.uploadedAt) +
+            ' — <a href="#" data-dl="/api/editorial/submissions/' + esc(s.id) + '/revision/' + i + '" style="color:var(--teal);font-weight:600;">' + esc(r.file.fileName) + '</a>' +
+            (r.note ? '<div class="hint">' + esc(r.note) + '</div>' : '') + '</div>';
+        }).join('');
+    } else {
+      document.getElementById('revisionsBox').innerHTML = '';
+    }
+  }
+
+  function renderDecisions(available, s){
+    const wrap = document.getElementById('decisionWrap');
+    if (!available.length){
+      wrap.innerHTML = '<p class="hint">This submission has reached a terminal stage (' + esc(s.stageLabel) + '). No further decisions are available.</p>';
+      return;
+    }
+    wrap.innerHTML =
+      '<div class="form-row"><label for="decNote">Note to the author (optional)</label>' +
+      '<textarea id="decNote" placeholder="This appears in the author\'s submission timeline. Leave blank to use the default wording for the decision."></textarea></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      available.map(function(d){
+        const danger = d.key === 'decline';
+        // Publishing is gated on the article actually being ready. The button
+        // is disabled rather than hidden so the reason stays visible.
+        const blocked = d.key === 'publish' && (state.publishBlockers || []).length;
+        return '<button class="btn ' + (danger ? 'btn-danger' : 'btn-navy') + ' btn-sm" data-dec="' + esc(d.key) + '"' +
+          (blocked ? ' disabled title="' + esc((state.publishBlockers || []).join(' ')) + '"' : '') +
+          '>' + esc(d.label) + '</button>';
+      }).join('') +
+      '</div>' +
+      ((state.publishBlockers || []).length && available.some(function(d){ return d.key === 'publish'; })
+        ? '<div class="hint" style="margin-top:8px;">Publishing is blocked: ' +
+          esc((state.publishBlockers || []).join(' ')) + ' See <b>Publication Details</b> below.</div>'
+        : '');
+
+    wrap.querySelectorAll('button[data-dec]').forEach(function(btn){
+      btn.addEventListener('click', function(){ submitDecision(btn.getAttribute('data-dec'), btn.textContent, false); });
+    });
+  }
+
+  async function submitDecision(key, label, force){
+    if (!force && !confirm('Record decision: "' + label + '"?')) return;
+    clearAlert();
+    const note = (document.getElementById('decNote') || {}).value || '';
+    const res = await A.apiFetch('/api/editorial/submissions/' + id + '/decision', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ decision:key, note:note, force: !!force })
+    });
+    const data = await res.json().catch(function(){ return {}; });
+    if (res.status === 409 && data.code === 'NOT_READY_TO_PUBLISH'){
+      showAlert('Not ready to publish — ' + (data.blockers || []).join(' '));
+      return;
+    }
+    if (res.status === 409 && data.code === 'REVIEWS_OUTSTANDING'){
+      if (confirm(data.error + '\n\nRecord the decision anyway?')){
+        return submitDecision(key, label, true);
+      }
+      return;
+    }
+    if (!res.ok){ showAlert(data.error || 'Could not record that decision.'); return; }
+    load();
+  }
+
+  function renderReviewers(reviews, s){
+    document.getElementById('reviewSub').textContent = s.stage === 'review'
+      ? 'Round ' + s.currentRound + ' — invite reviewers, then record a decision once their reviews are in.'
+      : 'Reviewers can only be invited while the manuscript is at the Peer Review stage.';
+
+    const assignWrap = document.getElementById('assignWrap');
+    if (s.stage === 'review'){
+      assignWrap.innerHTML =
+        '<div class="inline-form">' +
+          '<div class="form-row"><label for="revSelect">Invite a reviewer</label><select id="revSelect"><option value="">Loading reviewers…</option></select></div>' +
+          '<div class="form-row" style="max-width:200px;"><label for="revDue">Review due</label><input type="date" id="revDue"></div>' +
+          '<button class="btn btn-gold btn-sm" id="assignBtn">Send Invitation</button>' +
+        '</div>' +
+        '<div class="hint" style="margin-top:6px;">Only people holding the reviewer role appear here — grant it from the Editorial Dashboard\'s People &amp; Roles panel.</div>';
+      loadCandidates();
+      document.getElementById('assignBtn').addEventListener('click', assignReviewer);
+    } else {
+      assignWrap.innerHTML = '';
+    }
+
+    const wrap = document.getElementById('reviewsWrap');
+    if (!reviews.length){
+      wrap.innerHTML = '<p class="hint">No reviewers have been invited yet.</p>';
+      return;
+    }
+    wrap.innerHTML = reviews.map(function(r){
+      let html = '<div class="review-card">' +
+        '<div class="rc-head">' +
+          '<div><span class="rc-who">' + esc(r.reviewerName) + '</span>' +
+            '<div class="rc-meta">' + esc(r.reviewerEmail) + (r.reviewerAffiliation ? ' · ' + esc(r.reviewerAffiliation) : '') + '</div></div>' +
+          '<div style="text-align:right;">' +
+            '<span class="status-chip" style="background:var(--bg-soft);color:var(--muted);">Round ' + r.round + ' · ' + esc(r.statusLabel) + '</span>' +
+            '<div class="rc-meta">Invited ' + fmtDate(r.assignedAt) + (r.dueDate ? ' · due ' + fmtDate(r.dueDate) : '') + '</div>' +
+          '</div>' +
+        '</div>';
+
+      if (r.status === 'declined' && r.declineReason){
+        html += '<div class="rc-label">Reason for declining</div><div class="rc-body">' + esc(r.declineReason) + '</div>';
+      }
+      if (r.status === 'completed'){
+        html += '<div style="margin:8px 0;"><span class="rec-chip ' + esc(r.recommendation) + '">' + esc(r.recommendationLabel) + '</span> ' +
+          '<span class="rc-meta">submitted ' + fmtDate(r.completedAt) + '</span></div>';
+        html += '<div class="rc-label">Comments for the author</div><div class="rc-body">' + esc(r.commentsForAuthor) + '</div>';
+        if (r.commentsForEditor){
+          html += '<div class="rc-label">Confidential — for the editor only</div><div class="rc-body" style="background:#fffdf5;border-color:#f0dcb4;">' + esc(r.commentsForEditor) + '</div>';
+        }
+        if (r.reviewFile){
+          html += '<div style="margin-top:10px;"><a class="btn btn-ghost btn-sm" href="#" data-dl="/api/editorial/assignments/' + esc(r.id) + '/file">' + esc(r.reviewFile.fileName) + '</a></div>';
+        }
+      }
+      // Show whether the invitation email actually left the building --
+      // otherwise a silent SendGrid failure looks like an unresponsive
+      // reviewer, and the editor waits on someone who was never contacted.
+      const notes = r.notifications || [];
+      if (notes.length){
+        const failed = notes.filter(function(n){ return n.status === 'failed'; });
+        const logged = notes.filter(function(n){ return n.status === 'logged'; });
+        if (failed.length){
+          html += '<div style="margin-top:10px;font-size:11.5px;color:#a12626;">⚠ Email failed to send (' +
+            esc(failed[failed.length-1].error || 'unknown error') + ') — this reviewer may not know they were invited.</div>';
+        } else if (logged.length){
+          html += '<div style="margin-top:10px;font-size:11.5px;color:#a97418;">Email not sent — mail is not configured on this environment.</div>';
+        } else {
+          html += '<div style="margin-top:10px;font-size:11.5px;color:var(--muted);">✓ Notified by email ' + fmtDate(notes[notes.length-1].at) + '</div>';
+        }
+      }
+
+      if (r.status === 'pending' || r.status === 'accepted'){
+        html += '<div style="margin-top:10px;"><button class="btn btn-ghost btn-sm" data-cancel="' + esc(r.id) + '">Withdraw invitation</button></div>';
+      }
+      return html + '</div>';
+    }).join('');
+
+    wireDownloads(wrap);
+    wrap.querySelectorAll('button[data-cancel]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        if (!confirm('Withdraw this review invitation?')) return;
+        const res = await A.apiFetch('/api/editorial/assignments/' + btn.getAttribute('data-cancel') + '/cancel', { method:'POST' });
+        if (!res.ok){
+          const e = await res.json().catch(function(){return {};});
+          showAlert(e.error || 'Could not withdraw that invitation.');
+          return;
+        }
+        load();
+      });
+    });
+  }
+
+  async function loadCandidates(){
+    const sel = document.getElementById('revSelect');
+    if (!sel) return;
+    try{
+      const res = await A.apiFetch('/api/editorial/submissions/' + id + '/reviewer-candidates');
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const list = data.candidates || [];
+      if (!list.length){
+        sel.innerHTML = '<option value="">No reviewers available — grant the reviewer role first</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">Select a reviewer…</option>' + list.map(function(c){
+        return '<option value="' + esc(c.id) + '"' + (c.alreadyAssigned ? ' disabled' : '') + '>' +
+          esc(c.name) + (c.affiliation ? ' — ' + esc(c.affiliation) : '') +
+          (c.alreadyAssigned ? ' (already invited)' : '') + '</option>';
+      }).join('');
+    }catch(e){
+      sel.innerHTML = '<option value="">Could not load reviewers</option>';
+    }
+  }
+
+  async function assignReviewer(){
+    clearAlert();
+    const reviewerId = document.getElementById('revSelect').value;
+    const dueDate = document.getElementById('revDue').value;
+    if (!reviewerId){ showAlert('Choose a reviewer to invite.'); return; }
+    const res = await A.apiFetch('/api/editorial/submissions/' + id + '/reviewers', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ reviewerId: reviewerId, dueDate: dueDate })
+    });
+    if (!res.ok){
+      const e = await res.json().catch(function(){return {};});
+      showAlert(e.error || 'Could not invite that reviewer.');
+      return;
+    }
+    load();
+  }
+
+  // ---- Copyediting & production ----
+
+  const PROD = '/api/editorial/production';
+  let issueCache = null;
+
+  function fmtSize(bytes){
+    if (!bytes) return '';
+    const mb = bytes / (1024*1024);
+    return mb >= 1 ? mb.toFixed(1) + ' MB' : Math.max(1, Math.round(bytes/1024)) + ' KB';
+  }
+
+  async function postForm(url, formData){
+    const res = await A.apiFetch(url, { method:'POST', body: formData });
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) throw new Error(data.error || 'That did not work.');
+    return data;
+  }
+
+  async function postJson(url, body, method){
+    const res = await A.apiFetch(url, {
+      method: method || 'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body || {})
+    });
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) throw new Error(data.error || 'That did not work.');
+    return data;
+  }
+
+  async function loadStageFiles(){
+    const panel = document.getElementById('filesPanel');
+    const s = state.submission;
+    // Only meaningful once the manuscript is past review.
+    if (s.stage !== 'copyediting' && s.stage !== 'production' && s.stage !== 'published'){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+
+    let data;
+    try {
+      const res = await A.apiFetch(PROD + '/submissions/' + id + '/files');
+      if (!res.ok) throw new Error('failed');
+      data = await res.json();
+    } catch(e){
+      document.getElementById('stageFilesWrap').innerHTML = '<p class="hint">Could not load the file rounds.</p>';
+      return;
+    }
+
+    document.getElementById('filesSub').textContent =
+      'Files exchanged with the author after acceptance. Internal working files are never shown to the author.';
+
+    const kinds = (data.uploadableKinds || []).concat(data.alsoUploadable || []);
+    const upload = document.getElementById('fileUploadWrap');
+    if (kinds.length){
+      upload.innerHTML =
+        '<div class="inline-form">' +
+          '<div class="form-row"><label for="sfKind">Add a file</label><select id="sfKind">' +
+            kinds.map(function(k){
+              return '<option value="' + esc(k.key) + '" data-vis="' + (k.authorVisible ? '1':'0') + '">' + esc(k.label) + '</option>';
+            }).join('') +
+          '</select></div>' +
+          '<div class="form-row"><label for="sfFile">File (.pdf, .doc, .docx)</label><input type="file" id="sfFile" accept=".pdf,.doc,.docx"></div>' +
+          '<div class="form-row"><label for="sfNote">Note (optional)</label><input type="text" id="sfNote" placeholder="What the author should do with it"></div>' +
+          '<button class="btn btn-gold btn-sm" id="sfBtn">Upload</button>' +
+        '</div>' +
+        '<label class="form-check" style="margin-top:8px;"><input type="checkbox" id="sfNeeds"> ' +
+          '<span>Ask the author to respond — emails them and flags it on their dashboard</span></label>' +
+        '<div class="hint" id="sfVisHint" style="margin-top:4px;"></div>';
+
+      const kindSel = document.getElementById('sfKind');
+      const needs = document.getElementById('sfNeeds');
+      function syncVisibility(){
+        const opt = kindSel.options[kindSel.selectedIndex];
+        const visible = opt && opt.getAttribute('data-vis') === '1';
+        needs.disabled = !visible;
+        if (!visible) needs.checked = false;
+        document.getElementById('sfVisHint').textContent = visible
+          ? 'The author can see and download this file.'
+          : 'Internal only — the author never sees this file.';
+      }
+      kindSel.addEventListener('change', syncVisibility);
+      syncVisibility();
+
+      document.getElementById('sfBtn').addEventListener('click', async function(){
+        clearAlert();
+        const fileEl = document.getElementById('sfFile');
+        if (!fileEl.files.length){ showAlert('Choose a file to upload.'); return; }
+        const fd = new FormData();
+        fd.append('file', fileEl.files[0]);
+        fd.append('kind', kindSel.value);
+        fd.append('note', document.getElementById('sfNote').value || '');
+        fd.append('needsAuthorAction', needs.checked ? 'true' : 'false');
+        try {
+          await postForm(PROD + '/submissions/' + id + '/files', fd);
+          loadStageFiles();
+          loadGalleys();
+        } catch(err){ showAlert(err.message); }
+      });
+    } else {
+      upload.innerHTML = '';
+    }
+
+    const wrap = document.getElementById('stageFilesWrap');
+    const files = data.files || [];
+    if (!files.length){
+      wrap.innerHTML = '<p class="hint">No copyediting or production files yet.</p>';
+      return;
+    }
+    wrap.innerHTML = files.map(function(f){
+      const badge = f.authorVisible
+        ? '<span class="status-chip" style="background:#eef7f3;color:#1c6b4f;">Author can see this</span>'
+        : '<span class="status-chip" style="background:#f4f0e6;color:#8a6516;">Internal only</span>';
+      const flag = f.needsAuthorAction && !f.answeredAt
+        ? '<span class="status-chip" style="background:#fdeeee;color:#a12626;">Awaiting the author</span>' : '';
+      return '<div class="review-card">' +
+        '<div class="rc-head">' +
+          '<div><span class="rc-who">' + esc(f.kindLabel) + '</span>' +
+            '<div class="rc-meta">' + esc(f.uploadedByName || (f.uploadedByRole === 'author' ? 'Author' : 'Editorial office')) +
+            ' · ' + fmtDate(f.uploadedAt) + (f.fileSize ? ' · ' + fmtSize(f.fileSize) : '') + '</div></div>' +
+          '<div style="text-align:right;">' + badge + ' ' + flag + '</div>' +
+        '</div>' +
+        (f.note ? '<div class="rc-label">Note</div><div class="rc-body">' + esc(f.note) + '</div>' : '') +
+        '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<a class="btn btn-ghost btn-sm" href="#" data-dl="' + PROD + '/submissions/' + esc(id) + '/files/' + esc(f.id) + '">' + esc(f.fileName) + '</a>' +
+          (f.uploadedByRole === 'editor'
+            ? '<button class="btn btn-ghost btn-sm" data-rmfile="' + esc(f.id) + '">Remove</button>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    wireDownloads(wrap);
+    wrap.querySelectorAll('button[data-rmfile]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        if (!confirm('Remove this file from the workflow? The stored copy is deleted.')) return;
+        try {
+          const res = await A.apiFetch(PROD + '/submissions/' + id + '/files/' + btn.getAttribute('data-rmfile'), { method:'DELETE' });
+          const d = await res.json().catch(function(){return {};});
+          if (!res.ok) throw new Error(d.error || 'Could not remove that file.');
+          loadStageFiles();
+        } catch(err){ showAlert(err.message); }
+      });
+    });
+  }
+
+  // ---- Galleys ----
+
+  async function loadGalleys(){
+    const panel = document.getElementById('galleyPanel');
+    const s = state.submission;
+    if (s.stage !== 'production' && s.stage !== 'published'){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+
+    let data;
+    try {
+      const res = await A.apiFetch(PROD + '/submissions/' + id + '/galleys');
+      if (!res.ok) throw new Error('failed');
+      data = await res.json();
+    } catch(e){
+      document.getElementById('galleyWrap').innerHTML = '<p class="hint">Could not load galleys.</p>';
+      return;
+    }
+
+    const galleys = data.galleys || [];
+    const wrap = document.getElementById('galleyWrap');
+    wrap.innerHTML = galleys.length
+      ? galleys.map(function(g){
+          const generated = g.source === 'generated';
+          return '<div class="review-card">' +
+            '<div class="rc-head">' +
+              '<div><span class="rc-who">' + esc(g.label) + '</span>' +
+                '<div class="rc-meta">' + esc(g.formatLabel) + ' · ' +
+                (generated ? 'generated from the manuscript' : 'uploaded') +
+                (g.fileSize ? ' · ' + fmtSize(g.fileSize) : '') + '</div></div>' +
+              '<div style="text-align:right;" class="rc-meta">' + fmtDate(g.createdAt) + '</div>' +
+            '</div>' +
+            (generated && g.stats
+              ? '<div class="rc-meta" style="margin-top:6px;">' + g.stats.sections + ' sections · ' +
+                g.stats.paragraphs + ' paragraphs · ~' + g.stats.words + ' words</div>' : '') +
+            '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+              '<a class="btn btn-ghost btn-sm" href="#" data-dl="' + PROD + '/submissions/' + esc(id) + '/galleys/' + esc(g.id) + '/file">Download</a>' +
+              '<button class="btn btn-ghost btn-sm" data-relabel="' + esc(g.id) + '" data-label="' + esc(g.label) + '">Rename</button>' +
+              '<button class="btn btn-ghost btn-sm" data-rmgalley="' + esc(g.id) + '">Remove</button>' +
+            '</div>' +
+          '</div>';
+        }).join('')
+      : '<p class="hint">No galleys yet. Upload the typeset PDF, and optionally generate an HTML full text for search engines.</p>';
+
+    const sources = data.generateSources || [];
+    document.getElementById('galleyFormsWrap').innerHTML =
+      '<div class="inline-form">' +
+        '<div class="form-row"><label for="glFile">Upload a galley (.pdf, .html, .xml)</label><input type="file" id="glFile" accept=".pdf,.html,.xml"></div>' +
+        '<div class="form-row" style="max-width:180px;"><label for="glLabel">Label</label><input type="text" id="glLabel" placeholder="PDF"></div>' +
+        '<button class="btn btn-gold btn-sm" id="glBtn">Add Galley</button>' +
+      '</div>' +
+      '<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px;">' +
+        (sources.length
+          ? '<div class="inline-form">' +
+              '<div class="form-row"><label for="glSource">Generate HTML full text from</label><select id="glSource">' +
+                sources.map(function(x){ return '<option value="' + esc(x.ref) + '">' + esc(x.label) + '</option>'; }).join('') +
+              '</select></div>' +
+              '<button class="btn btn-navy btn-sm" id="glGenBtn">Generate</button>' +
+            '</div>' +
+            '<div class="hint" style="margin-top:6px;">Builds a readable, indexable HTML version — headings, paragraphs and references. ' +
+            'It does not reproduce figures, equations or table layout, so the PDF stays the version of record.</div>'
+          : '<div class="hint">To generate an HTML full text, add a .docx as the final copyedited file above. ' +
+            'HTML cannot be built from a PDF.</div>') +
+      '</div>';
+
+    document.getElementById('glBtn').addEventListener('click', async function(){
+      clearAlert();
+      const fileEl = document.getElementById('glFile');
+      if (!fileEl.files.length){ showAlert('Choose a galley file.'); return; }
+      const fd = new FormData();
+      fd.append('file', fileEl.files[0]);
+      fd.append('label', document.getElementById('glLabel').value || '');
+      try {
+        await postForm(PROD + '/submissions/' + id + '/galleys', fd);
+        loadGalleys(); loadPublication();
+      } catch(err){ showAlert(err.message); }
+    });
+
+    const genBtn = document.getElementById('glGenBtn');
+    if (genBtn){
+      genBtn.addEventListener('click', async function(){
+        clearAlert();
+        genBtn.disabled = true; genBtn.textContent = 'Generating…';
+        try {
+          const out = await postJson(PROD + '/submissions/' + id + '/galleys/generate', {
+            source: document.getElementById('glSource').value
+          });
+          showAlert(out.replaced
+            ? 'HTML full text regenerated and the previous version replaced.'
+            : 'HTML full text generated.', 'success');
+          loadGalleys(); loadPublication();
+        } catch(err){ showAlert(err.message); }
+        finally { genBtn.disabled = false; genBtn.textContent = 'Generate'; }
+      });
+    }
+
+    wireDownloads(wrap);
+    wrap.querySelectorAll('button[data-relabel]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const next = prompt('Label shown to readers:', btn.getAttribute('data-label'));
+        if (next === null) return;
+        try {
+          await postJson(PROD + '/submissions/' + id + '/galleys/' + btn.getAttribute('data-relabel'), { label: next }, 'PATCH');
+          loadGalleys();
+        } catch(err){ showAlert(err.message); }
+      });
+    });
+    wrap.querySelectorAll('button[data-rmgalley]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        if (!confirm('Remove this galley?')) return;
+        try {
+          const res = await A.apiFetch(PROD + '/submissions/' + id + '/galleys/' + btn.getAttribute('data-rmgalley'), { method:'DELETE' });
+          const d = await res.json().catch(function(){return {};});
+          if (!res.ok) throw new Error(d.error || 'Could not remove that galley.');
+          loadGalleys(); loadPublication();
+        } catch(err){ showAlert(err.message); }
+      });
+    });
+  }
+
+  // ---- Publication details ----
+
+  async function loadIssues(journalCode){
+    if (issueCache) return issueCache;
+    try {
+      const res = await A.apiFetch(PROD + '/issues?journal=' + encodeURIComponent(journalCode));
+      if (!res.ok) throw new Error('failed');
+      const d = await res.json();
+      issueCache = d.issues || [];
+    } catch(e){ issueCache = []; }
+    return issueCache;
+  }
+
+  async function loadPublication(){
+    const panel = document.getElementById('pubPanel');
+    const s = state.submission;
+    if (s.stage !== 'production' && s.stage !== 'published'){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = 'block';
+
+    const issues = await loadIssues(s.journalCode);
+    const current = s.issueId || '';
+    const blockers = state.publishBlockers || [];
+
+    document.getElementById('pubWrap').innerHTML =
+      (blockers.length
+        ? '<div class="declaration-box" style="margin-bottom:14px;"><b>Before this can be published:</b><ul style="margin:8px 0 0 18px;font-size:13px;">' +
+          blockers.map(function(b){ return '<li>' + esc(b) + '</li>'; }).join('') + '</ul></div>'
+        : '<div class="declaration-box" style="margin-bottom:14px;background:#eef7f3;border-color:#bfe0d0;">' +
+          '<b>Ready to publish.</b> Publishing places it in the issue; readers see it once that issue is released.</div>') +
+      '<div class="form-grid-2">' +
+        '<div class="form-row"><label for="pubIssue">Issue</label><select id="pubIssue">' +
+          '<option value="">— not assigned —</option>' +
+          issues.map(function(i){
+            return '<option value="' + esc(i.id) + '"' + (i.id === current ? ' selected' : '') + '>' +
+              esc(i.label) + (i.status === 'published' ? ' (released)' : ' (planned)') + '</option>';
+          }).join('') +
+        '</select>' +
+        (issues.length ? '' : '<div class="hint">No issues exist for this journal yet — create one on the <a href="editor-issues.html" style="color:var(--teal);font-weight:600;">Issues</a> page.</div>') +
+        '</div>' +
+        '<div class="form-row"><label for="pubPages">Pages</label><input type="text" id="pubPages" placeholder="112-125" value="' + esc(s.pages || '') + '"></div>' +
+        '<div class="form-row"><label for="pubDoi">DOI</label><input type="text" id="pubDoi" placeholder="10.1234/alstm.2026.001" value="' + esc(s.doi || '') + '"></div>' +
+        '<div class="form-row"><label for="pubOrder">Order in issue</label><input type="number" id="pubOrder" placeholder="1" value="' + (s.articleOrder == null ? '' : esc(s.articleOrder)) + '"></div>' +
+        '<div class="form-row" style="grid-column:1/-1;"><label for="pubLicense">Licence</label><input type="text" id="pubLicense" placeholder="CC BY 4.0" value="' + esc(s.license || '') + '"></div>' +
+      '</div>' +
+      '<button class="btn btn-navy btn-sm" id="pubSave">Save Publication Details</button>' +
+      (s.stage === 'published'
+        ? ' <a class="btn btn-ghost btn-sm" href="/article/' + esc(s.id) + '" target="_blank" rel="noopener">View public page</a>'
+        : '');
+
+    document.getElementById('pubSave').addEventListener('click', async function(){
+      clearAlert();
+      try {
+        const out = await postJson(PROD + '/submissions/' + id + '/publication', {
+          issueId: document.getElementById('pubIssue').value,
+          pages: document.getElementById('pubPages').value,
+          doi: document.getElementById('pubDoi').value,
+          license: document.getElementById('pubLicense').value,
+          articleOrder: document.getElementById('pubOrder').value
+        }, 'PATCH');
+        state.publishBlockers = out.publishBlockers || [];
+        Object.assign(state.submission, out.submission);
+        showAlert('Publication details saved.', 'success');
+        loadPublication();
+        renderDecisions(state.availableDecisions || [], state.submission);
+      } catch(err){ showAlert(err.message); }
+    });
+  }
+
+  function renderHistory(s){
+    const items = (s.statusHistory || []).map(function(h){
+      return '<li><div class="t-status">' + esc(h.status) + '</div>' +
+        '<div class="t-when">' + fmtDateTime(h.at) + '</div>' +
+        (h.note ? '<div class="t-note">' + esc(h.note) + '</div>' : '') + '</li>';
+    }).join('');
+    document.getElementById('historyWrap').innerHTML = items || '<li><div class="t-note">No history yet.</div></li>';
+  }
+
+  async function load(){
+    if (!id){ showAlert('No submission specified.'); return; }
+    try{
+      const res = await A.apiFetch('/api/editorial/submissions/' + id);
+      if (res.status === 403){
+        showAlert('Your account does not hold the editor role.');
+        return;
+      }
+      if (!res.ok) throw new Error('failed');
+      state = await res.json();
+      const s = state.submission;
+      document.getElementById('body').style.display = 'block';
+      clearAlert();
+      renderHeader(s);
+      renderMeta(s);
+      renderDecisions(state.availableDecisions || [], s);
+      renderReviewers(state.reviews || [], s);
+      renderHistory(s);
+      wireDownloads(document.getElementById('body'));
+      loadStageFiles();
+      loadGalleys();
+      loadPublication();
+    }catch(e){
+      showAlert('Could not load this submission.');
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

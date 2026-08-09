@@ -1,0 +1,18 @@
+<!--
+  Favicon — simplified mark.
+
+  Based on the brand's own 16px variant, not a shrunk copy of the full mark:
+  three overlapping leaves at 3.2 stroke turn to mud at 16 pixels. Two leaves
+  and a heavier stroke stay legible in a browser tab.
+
+  Kept navy-on-cream rather than transparent so it holds its shape against
+  both light and dark browser chrome.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 116" width="120" height="116" role="img" aria-label="Aaranya Scholarly">
+  <rect width="120" height="116" rx="18" fill="#f4f7f9"/>
+  <g fill="none" stroke="#0b3350" stroke-width="5.6" stroke-linejoin="round">
+    <path d="M60 92C44 72 44 42 60 18C76 42 76 72 60 92Z" transform="rotate(-24 60 92)"/>
+    <path d="M60 92C44 72 44 42 60 18C76 42 76 72 60 92Z" transform="rotate(18 60 92)"/>
+  </g>
+  <path d="M36 100h48" stroke="#c8912a" stroke-width="5.6" stroke-linecap="round"/>
+</svg>

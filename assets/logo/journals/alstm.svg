@@ -1,0 +1,21 @@
+<!--
+  Advanced Life Sciences &amp; Translational Medicine
+  Journal mark, part of the Aaranya Scholarly family.
+
+  Shared with every sibling: the rounded tile, the 5.2 stroke weight, and the
+  gold rule beneath the glyph, which is the signature carried over from the
+  parent identity. Only the glyph and accent colour distinguish this one.
+
+  Generated, not hand-drawn, so the seven stay consistent.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="Advanced Life Sciences &amp; Translational Medicine">
+  <rect width="96" height="96" rx="14" fill="#e7f0f3"/>
+  <g fill="none" stroke="#0f5d73" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Double helix: life sciences and translational medicine -->
+    <path d="M34 24C34 38 62 42 62 56C62 70 34 74 34 88" />
+    <path d="M62 24C62 38 34 42 34 56C34 70 62 74 62 88" />
+    <path d="M39 34h18M37 46h22M37 66h22M39 78h18" stroke-width="3.4" />
+      </g>
+  <path d="M30 88h36" stroke="#c8912a" stroke-width="5" stroke-linecap="round"/>
+</svg>

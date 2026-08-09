@@ -1,0 +1,23 @@
+{
+  "name": "aaranya-scholarly-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aaranya Scholarly LLP publisher site with author registration, login, and manuscript submission.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/workflow.test.js && node test/email.test.js && node test/gmail.test.js && node test/reminders.test.js && node test/scoping.test.js && node test/assistant.test.js && node test/production.test.js",
+    "test:e2e": "node test/run-e2e.js",
+    "probe-gemini": "node scripts/probe-gemini.js"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "@google-cloud/storage": "^7.14.0",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.0",
+    "nodemailer": "^6.9.16",
+    "uuid": "^11.0.0"
+  }
+}

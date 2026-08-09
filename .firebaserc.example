@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Copy this file to .firebaserc and replace the project ID with your own.",
+    "Running `firebase use --add` will also create/update .firebaserc for you.",
+    ".firebaserc is gitignored because it names your specific project."
+  ],
+  "projects": {
+    "default": "aaranya-scholarly"
+  }
+}

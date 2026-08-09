@@ -1,0 +1,17 @@
+<!--
+  Aaranya Scholarly mark — reversed, for dark backgrounds.
+
+  Used on the navy header tile and the hero cover card. The leaves go to
+  white rather than cream so they hold up against the site's darkest navy
+  (#082638); the gold is lifted slightly to #d9a94a because the standard
+  #c8912a loses contrast on a dark ground.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 116" width="120" height="116" role="img" aria-label="Aaranya Scholarly">
+  <g fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linejoin="round">
+    <path d="M60 92C50 78 50 58 60 42C70 58 70 78 60 92Z" transform="rotate(-40 60 92)"/>
+    <path d="M60 92C44 72 44 42 60 18C76 42 76 72 60 92Z" transform="rotate(-6 60 92)"/>
+    <path d="M60 92C48 76 48 50 60 32C72 50 72 76 60 92Z" transform="rotate(30 60 92)"/>
+  </g>
+  <path d="M34 100h52" stroke="#d9a94a" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="60" cy="100" r="4.4" fill="none" stroke="#d9a94a" stroke-width="3"/>
+</svg>

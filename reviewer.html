@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Reviews | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="index.html">← Aaranya Scholarly LLP</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Reviewer Dashboard</h1>
+      <div class="meta-line">Manuscripts you have been invited to review across Aaranya Scholarly journals.</div>
+    </div>
+    <a class="btn btn-outline" href="dashboard.html">My Dashboard</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <div class="anon-notice">
+      <b>Double-anonymous review.</b> You will not see the authors' names or affiliations, and they will not see yours.
+      Please avoid including anything in your comments that would identify you.
+    </div>
+    <div id="listWrap">
+      <div class="empty-state"><div class="icon">⏳</div><h3>Loading your review assignments…</h3></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+  const A = window.AaranyaAuth;
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  }
+  function isOverdue(a){
+    return a.dueDate && a.status !== 'completed' && a.status !== 'declined' && new Date(a.dueDate) < new Date();
+  }
+
+  function render(list){
+    const wrap = document.getElementById('listWrap');
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">📝</div><h3>No review invitations yet</h3>' +
+        '<p>When an editor invites you to review a manuscript, it will appear here.</p></div>';
+      return;
+    }
+    const rows = list.map(function(a){
+      const s = a.submission || {};
+      const action = a.status === 'completed'
+        ? '<a href="review.html?id=' + esc(a.id) + '" style="color:var(--teal);font-weight:600;">View review</a>'
+        : '<a href="review.html?id=' + esc(a.id) + '" style="color:var(--teal);font-weight:600;">' +
+          (a.status === 'pending' ? 'Respond' : 'Write review') + '</a>';
+      return '<tr>' +
+        '<td><a href="review.html?id=' + esc(a.id) + '" style="color:var(--navy-dark);font-weight:700;">' + esc(s.title || '(untitled)') + '</a>' +
+          '<div class="hint" style="margin-top:4px;">' + esc(s.articleType || '') + '</div></td>' +
+        '<td>' + esc(s.journalName || '') + '</td>' +
+        '<td>Round ' + a.round + '</td>' +
+        '<td' + (isOverdue(a) ? ' style="color:#a12626;font-weight:700;"' : '') + '>' + fmtDate(a.dueDate) +
+          (isOverdue(a) ? ' (overdue)' : '') + '</td>' +
+        '<td><span class="status-chip" style="background:var(--bg-soft);color:var(--muted);">' + esc(a.statusLabel) + '</span>' +
+          (a.recommendationLabel ? '<div class="hint" style="margin-top:4px;">' + esc(a.recommendationLabel) + '</div>' : '') + '</td>' +
+        '<td>' + action + '</td>' +
+        '</tr>';
+    }).join('');
+    wrap.innerHTML = '<table class="sub-table"><thead><tr>' +
+      '<th>Manuscript</th><th>Journal</th><th>Round</th><th>Due</th><th>Status</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  async function load(){
+    const wrap = document.getElementById('listWrap');
+    try{
+      const res = await A.apiFetch('/api/reviews');
+      if (res.status === 403){
+        wrap.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><h3>Reviewer access required</h3>' +
+          '<p>Your account does not hold the reviewer role. An editor grants this before assigning reviews.</p>' +
+          '<a class="btn btn-navy" href="dashboard.html">Back to My Dashboard</a></div>';
+        return;
+      }
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      render(data.assignments || []);
+    }catch(e){
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">⚠</div><h3>Could not load your reviews</h3></div>';
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editorial Dashboard | Aaranya Scholarly</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo/favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-base="./">
+
+<div class="utility">
+  <div class="wrap">
+    <div class="issn"><a class="home-link" href="index.html">← Aaranya Scholarly LLP</a></div>
+    <div class="social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</div>
+
+<header class="main">
+  <div class="wrap">
+    <div class="logo-mark"><img src="assets/logo/mark-reversed.svg" alt="Aaranya Scholarly"></div>
+    <div class="title-block">
+      <h1>Editorial Dashboard</h1>
+      <div class="meta-line">Screen submissions, assign peer reviewers, and record editorial decisions.</div>
+    </div>
+    <a class="btn btn-outline" href="editor-issues.html">Issues</a>
+    <a class="btn btn-outline" href="dashboard.html">My Dashboard</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+
+    <div class="queue-tabs" id="queueTabs"></div>
+
+    <div id="queueWrap">
+      <div class="empty-state"><div class="icon">⏳</div><h3>Loading submissions…</h3></div>
+    </div>
+
+    <div class="panel" style="margin-top:30px;">
+      <div class="panel-head">
+        <div>
+          <h3>People &amp; Roles</h3>
+          <p class="panel-sub">Grant the reviewer role before you can invite someone to review. Editor role grants full editorial access — use sparingly.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="togglePeople">Show</button>
+      </div>
+      <div id="peopleWrap" style="display:none;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h3>Welcome Emails</h3>
+          <p class="panel-sub">Send the welcome email to anyone who registered before it existed. Runs once per person — nobody can be emailed twice.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="checkWelcome">Check who is pending</button>
+      </div>
+      <div id="welcomeWrap"></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-bottom" style="border-top:none;padding-top:0;">
+    <span>© 2026 Aaranya Scholarly LLP. All Rights Reserved.</span>
+    <div class="foot-social"><a href="#">f</a><a href="#">in</a><a href="#">X</a><a href="#">rg</a></div>
+  </div>
+</footer>
+
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  if (!window.AaranyaAuth.requireAuth()) return;
+  const A = window.AaranyaAuth;
+
+  const STAGES = [
+    { key:'submission',  label:'Submission' },
+    { key:'review',      label:'Peer Review' },
+    { key:'copyediting', label:'Copyediting' },
+    { key:'production',  label:'Production' },
+    { key:'published',   label:'Published' },
+    { key:'declined',    label:'Declined' }
+  ];
+  let activeStage = 'submission';
+  let counts = {};
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  }
+
+  function renderTabs(){
+    document.getElementById('queueTabs').innerHTML = STAGES.map(function(s){
+      const n = counts[s.key] || 0;
+      return '<button class="queue-tab' + (s.key===activeStage?' active':'') + '" data-stage="' + s.key + '">' +
+        esc(s.label) + '<span class="count">' + n + '</span></button>';
+    }).join('');
+    document.querySelectorAll('.queue-tab').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        activeStage = btn.getAttribute('data-stage');
+        renderTabs();
+        loadQueue();
+      });
+    });
+  }
+
+  function renderQueue(list){
+    const wrap = document.getElementById('queueWrap');
+    if (!list.length){
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>Nothing at this stage</h3>' +
+        '<p>Submissions will appear here as they move through the editorial workflow.</p></div>';
+      return;
+    }
+    const rows = list.map(function(s){
+      return '<tr>' +
+        '<td><a href="editor-submission.html?id=' + esc(s.id) + '" style="color:var(--navy-dark);font-weight:700;">' + esc(s.title) + '</a>' +
+          '<div class="hint" style="margin-top:4px;">' + esc(s.articleType||'') + '</div></td>' +
+        '<td>' + esc(s.journalName) + '</td>' +
+        '<td>' + fmtDate(s.submittedAt) + '</td>' +
+        '<td>' + (s.currentRound ? 'Round ' + s.currentRound : '—') + '</td>' +
+        '<td><span class="stage-chip ' + esc(s.stage) + '">' + esc(s.stageLabel) + '</span></td>' +
+        '<td><a href="editor-submission.html?id=' + esc(s.id) + '" style="color:var(--teal);font-weight:600;">Open</a></td>' +
+        '</tr>';
+    }).join('');
+    wrap.innerHTML = '<table class="sub-table"><thead><tr>' +
+      '<th>Manuscript</th><th>Journal</th><th>Submitted</th><th>Review Round</th><th>Stage</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  async function loadStats(){
+    try{
+      const res = await A.apiFetch('/api/editorial/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+      counts = data.counts || {};
+      renderTabs();
+    }catch(e){}
+  }
+
+  async function loadQueue(){
+    const wrap = document.getElementById('queueWrap');
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><h3>Loading…</h3></div>';
+    try{
+      const res = await A.apiFetch('/api/editorial/submissions?stage=' + encodeURIComponent(activeStage));
+      if (res.status === 403){
+        wrap.innerHTML = '<div class="empty-state"><div class="icon">🔒</div><h3>Editor access required</h3>' +
+          '<p>Your account does not hold the editor role.</p><a class="btn btn-navy" href="dashboard.html">Back to My Dashboard</a></div>';
+        return;
+      }
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      renderQueue(data.submissions || []);
+    }catch(e){
+      wrap.innerHTML = '<div class="empty-state"><div class="icon">⚠</div><h3>Could not load the queue</h3></div>';
+    }
+  }
+
+  // ---- People & roles ----
+  var PEOPLE = { journals: {}, myJournals: [], iAmManagingEditor: false };
+
+  // Which journals a role covers, shown as short codes so a row stays
+  // readable when someone covers five of them.
+  function journalChips(codes){
+    if (!codes || !codes.length) return '<span class="hint">none</span>';
+    return codes.map(function(c){
+      return '<span class="role-tag" title="' + esc(PEOPLE.journals[c] || c) + '">' + esc(c.toUpperCase()) + '</span>';
+    }).join('');
+  }
+
+  function renderPeople(users){
+    const rows = users.map(function(u){
+      const roles = u.roles || [];
+      const jr = u.journalRoles || { reviewer: [], editor: [] };
+      const isRev = roles.indexOf('reviewer') !== -1;
+      const isEd  = roles.indexOf('editor') !== -1;
+
+      var tags = '';
+      if (u.managingEditor) tags += '<span class="role-tag editor">managing editor</span>';
+      if (isEd && !u.managingEditor) tags += '<span class="role-tag editor">editor</span>';
+      if (isRev) tags += '<span class="role-tag reviewer">reviewer</span>';
+      if (!tags) tags = '<span class="hint">author</span>';
+
+      var coverage = '';
+      if (u.managingEditor){
+        coverage = '<div class="hint">all journals</div>';
+      } else {
+        if (isEd) coverage += '<div style="margin-bottom:4px;"><span class="hint">edits:</span> ' + journalChips(jr.editor) + '</div>';
+        if (isRev) coverage += '<div><span class="hint">reviews:</span> ' + journalChips(jr.reviewer) + '</div>';
+        if (!coverage) coverage = '<span class="hint">—</span>';
+      }
+
+      var actions = '';
+      actions += '<button class="btn btn-ghost btn-sm" data-assign="reviewer" data-user="' + esc(u.id) + '" data-name="' + esc(u.name) + '">' +
+        (isRev ? 'Edit reviewer journals' : 'Make reviewer') + '</button> ';
+      if (isRev) actions += '<button class="btn btn-ghost btn-sm" data-revoke="reviewer" data-user="' + esc(u.id) + '">Remove</button> ';
+      if (PEOPLE.iAmManagingEditor){
+        actions += '<button class="btn btn-ghost btn-sm" data-assign="editor" data-user="' + esc(u.id) + '" data-name="' + esc(u.name) + '">' +
+          (isEd ? 'Edit editor journals' : 'Make editor') + '</button>';
+        if (isEd) actions += ' <button class="btn btn-ghost btn-sm" data-revoke="editor" data-user="' + esc(u.id) + '">Remove</button>';
+      }
+
+      return '<tr>' +
+        '<td><b>' + esc(u.name) + '</b><div class="hint">' + esc(u.email) + '</div></td>' +
+        '<td>' + esc(u.affiliation||'') + '</td>' +
+        '<td>' + tags + '</td>' +
+        '<td>' + coverage + '</td>' +
+        '<td>' + actions + '</td></tr>';
+    }).join('');
+
+    const wrap = document.getElementById('peopleWrap');
+    wrap.innerHTML =
+      (PEOPLE.iAmManagingEditor
+        ? ''
+        : '<p class="hint" style="margin:0 0 12px;">You can assign reviewers for the journals you edit. Only a managing editor can create editors.</p>') +
+      '<table class="sub-table"><thead><tr><th>Person</th><th>Affiliation</th><th>Roles</th><th>Journals</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div id="assignPanel"></div>';
+
+    wrap.querySelectorAll('button[data-assign]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        openJournalPicker(
+          btn.getAttribute('data-user'),
+          btn.getAttribute('data-name'),
+          btn.getAttribute('data-assign'),
+          users
+        );
+      });
+    });
+
+    wrap.querySelectorAll('button[data-revoke]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const role = btn.getAttribute('data-revoke');
+        if (!confirm('Remove the ' + role + ' role entirely?')) return;
+        btn.disabled = true;
+        await saveRole(btn.getAttribute('data-revoke-user') || btn.getAttribute('data-user'), role, false, []);
+      });
+    });
+  }
+
+  // Picking journals is the whole point of this feature, so it gets a real
+  // form rather than a prompt() — an editor assigning five journals should
+  // not have to type comma-separated codes.
+  function openJournalPicker(userId, userName, role, users){
+    const user = users.filter(function(u){ return u.id === userId; })[0] || {};
+    const current = (user.journalRoles && user.journalRoles[role]) || [];
+    // A section editor may only hand out journals they themselves cover.
+    const selectable = PEOPLE.iAmManagingEditor ? Object.keys(PEOPLE.journals) : PEOPLE.myJournals;
+
+    const boxes = selectable.map(function(code){
+      const checked = current.indexOf(code) !== -1 ? ' checked' : '';
+      return '<label class="form-check" style="margin-bottom:6px;">' +
+        '<input type="checkbox" value="' + esc(code) + '"' + checked + '> ' +
+        '<span><b>' + esc(code.toUpperCase()) + '</b> — ' + esc(PEOPLE.journals[code]) + '</span></label>';
+    }).join('');
+
+    document.getElementById('assignPanel').innerHTML =
+      '<div class="panel" style="margin-top:16px;border-left:3px solid var(--gold);">' +
+      '<h3>' + esc(userName) + ' — ' + esc(role) + ' journals</h3>' +
+      '<p class="panel-sub">Select the journals this person ' + (role === 'editor' ? 'edits' : 'reviews for') + '. They will only see and be offered work for these.</p>' +
+      (selectable.length ? boxes : '<p class="hint">You do not currently edit any journals, so you cannot assign any.</p>') +
+      '<div class="form-alert" id="assignAlert"></div>' +
+      '<div style="margin-top:14px;"><button class="btn btn-gold btn-sm" id="assignSave">Save</button> ' +
+      '<button class="btn btn-ghost btn-sm" id="assignCancel">Cancel</button></div></div>';
+
+    document.getElementById('assignCancel').addEventListener('click', function(){
+      document.getElementById('assignPanel').innerHTML = '';
+    });
+    document.getElementById('assignSave').addEventListener('click', async function(){
+      const chosen = Array.prototype.slice
+        .call(document.querySelectorAll('#assignPanel input[type=checkbox]'))
+        .filter(function(c){ return c.checked; })
+        .map(function(c){ return c.value; });
+      if (!chosen.length){
+        const al = document.getElementById('assignAlert');
+        al.textContent = 'Select at least one journal, or use Remove to revoke the role.';
+        al.className = 'form-alert error show';
+        return;
+      }
+      await saveRole(userId, role, true, chosen);
+    });
+  }
+
+  async function saveRole(userId, role, grant, journals){
+    const res = await A.apiFetch('/api/editorial/users/' + userId + '/roles', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ role: role, grant: grant, journals: journals })
+    });
+    if (!res.ok){
+      const err = await res.json().catch(function(){ return {}; });
+      const al = document.getElementById('assignAlert');
+      if (al){ al.textContent = err.error || 'Could not update roles.'; al.className = 'form-alert error show'; }
+      else alert(err.error || 'Could not update roles.');
+      return;
+    }
+    loadPeople();
+  }
+
+  async function loadPeople(){
+    const wrap = document.getElementById('peopleWrap');
+    wrap.innerHTML = '<p class="hint">Loading…</p>';
+    try{
+      const res = await A.apiFetch('/api/editorial/users');
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      PEOPLE.journals = data.journals || {};
+      PEOPLE.myJournals = data.myJournals || [];
+      PEOPLE.iAmManagingEditor = Boolean(data.iAmManagingEditor);
+      renderPeople(data.users || []);
+    }catch(e){
+      wrap.innerHTML = '<p class="hint">Could not load people.</p>';
+    }
+  }
+
+  document.getElementById('togglePeople').addEventListener('click', function(){
+    const wrap = document.getElementById('peopleWrap');
+    const showing = wrap.style.display !== 'none';
+    wrap.style.display = showing ? 'none' : 'block';
+    this.textContent = showing ? 'Show' : 'Hide';
+    if (!showing && !wrap.innerHTML.trim()) loadPeople();
+    else if (!showing) loadPeople();
+  });
+
+  // ---- Welcome-email backfill ----
+  // Deliberately two steps: check first (which sends nothing), then confirm.
+  // These go to real authors, so there is no single click that mails people.
+  async function checkWelcome(){
+    const wrap = document.getElementById('welcomeWrap');
+    wrap.innerHTML = '<p class="hint">Checking…</p>';
+    try{
+      const res = await A.apiFetch('/api/editorial/backfill-welcome');
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      if (!data.pending){
+        wrap.innerHTML = '<p class="hint">Everyone has already been welcomed. Nothing to send.</p>';
+        return;
+      }
+      wrap.innerHTML =
+        '<p style="font-size:13px;margin:0 0 10px;"><b>' + data.pending + '</b> account(s) have never received a welcome email:</p>' +
+        '<ul style="font-size:13px;margin:0 0 14px;padding-left:18px;">' +
+        data.recipients.map(function(r){
+          return '<li>' + esc(r.name) + ' — ' + esc(r.email) + '</li>';
+        }).join('') + '</ul>' +
+        '<button class="btn btn-gold btn-sm" id="sendWelcome">Send to these ' + data.pending + '</button>';
+
+      document.getElementById('sendWelcome').addEventListener('click', function(){
+        sendWelcome(data.pending);
+      });
+    }catch(e){
+      wrap.innerHTML = '<p class="hint">Could not check. Are you signed in as an editor?</p>';
+    }
+  }
+
+  async function sendWelcome(count){
+    if (!confirm('Send the welcome email to ' + count + ' person/people?\n\nThese are real accounts. This cannot be undone.')) return;
+    const wrap = document.getElementById('welcomeWrap');
+    wrap.innerHTML = '<p class="hint">Sending…</p>';
+    try{
+      const res = await A.apiFetch('/api/editorial/backfill-welcome', { method:'POST' });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      wrap.innerHTML =
+        '<p style="font-size:13px;margin:0 0 10px;"><b>' + data.sent + '</b> of ' + data.attempted + ' sent successfully.</p>' +
+        '<table class="sub-table"><thead><tr><th>Recipient</th><th>Status</th></tr></thead><tbody>' +
+        data.results.map(function(r){
+          var colour = r.status === 'sent' ? '#2e8b4f' : (r.status === 'logged' ? '#a97418' : '#a12626');
+          return '<tr><td>' + esc(r.name) + '<div class="hint">' + esc(r.email) + '</div></td>' +
+            '<td style="color:' + colour + ';font-weight:700;">' + esc(r.status) +
+            (r.error ? '<div class="hint" style="color:#a12626;">' + esc(r.error) + '</div>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p class="hint" style="margin-top:10px;">"logged" means mail is not configured on this environment — nothing was actually sent.</p>';
+    }catch(e){
+      wrap.innerHTML = '<p class="hint">Send failed. Check the Cloud Run logs.</p>';
+    }
+  }
+
+  document.getElementById('checkWelcome').addEventListener('click', checkWelcome);
+
+  renderTabs();
+  loadStats();
+  loadQueue();
+})();
+</script>
+</body>
+</html>
