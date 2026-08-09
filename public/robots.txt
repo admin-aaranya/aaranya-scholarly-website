@@ -35,4 +35,11 @@ Disallow: /reviewer.html
 Disallow: /review.html
 Disallow: /api/
 
-Sitemap: https://aaranyascholarly.com/sitemap.xml
+# Must name the host that actually serves the site. aaranyascholarly.com is
+# registered but its A records still point at GoDaddy's parking page, so a
+# crawler following a Sitemap: line there would be handed the parking
+# lander's sitemap instead of ours.
+#
+# Change this to the custom domain at the same time as SITE_URL on Cloud Run
+# (0-RUN-SET-DOMAIN.bat), and not before.
+Sitemap: https://aaranya-scholarly.web.app/sitemap.xml
