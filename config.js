@@ -119,32 +119,11 @@ const GMAIL_IMPERSONATE = process.env.GMAIL_IMPERSONATE || '';
 // Only needed off Cloud Run; on Cloud Run the metadata server reports it.
 const RUNTIME_SERVICE_ACCOUNT = process.env.RUNTIME_SERVICE_ACCOUNT || '';
 
-// ---- AI writing assistant (Vertex AI Gemini) ----
-//
-// Author-facing only, and optional. It reads an author's own manuscript
-// before submission and returns advisory suggestions on formatting, language,
-// and obvious gaps in the methods and results. It is NOT peer review, it is
-// not shown to reviewers or editors as evidence, and it never blocks a
-// submission.
-//
-// GEMINI_ENABLED turns it on. With it off the feature disappears from the UI
-// entirely rather than presenting a button that errors.
-//
-// VERTEX_LOCATION is deliberately a region rather than "global": it keeps
-// manuscript content in the same region as the rest of this deployment, which
-// is the data-residency claim made to authors on the submission page.
-//
-// GEMINI_MODEL is configurable because Google retires and renames model IDs
-// on their own schedule. scripts/probe-gemini.js reports which IDs this
-// project can actually call -- use it rather than guessing after an upgrade.
-const GEMINI_ENABLED = String(process.env.GEMINI_ENABLED || '').toLowerCase() === 'true';
-const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'asia-south1';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const GCP_PROJECT_ID = process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || '';
-
-// Cost guard. Each check is a large prompt; without a cap one author with a
-// script could run up a real bill. Counted per user per rolling 24 hours.
-const AI_CHECKS_PER_DAY = parseInt(process.env.AI_CHECKS_PER_DAY || '5', 10);
+// The AI manuscript assistant (Vertex AI Gemini) was removed. Its settings --
+// GEMINI_ENABLED, VERTEX_LOCATION, GEMINI_MODEL, GCP_PROJECT_ID and
+// AI_CHECKS_PER_DAY -- are gone with it. If any are still set as environment
+// variables on the Cloud Run service they are now inert, but they are worth
+// clearing so nobody reads them later as evidence the feature still exists.
 
 // ---- Scheduled jobs ----
 //
@@ -213,11 +192,6 @@ module.exports = {
   GMAIL_ENABLED,
   GMAIL_IMPERSONATE,
   RUNTIME_SERVICE_ACCOUNT,
-  GEMINI_ENABLED,
-  VERTEX_LOCATION,
-  GEMINI_MODEL,
-  GCP_PROJECT_ID,
-  AI_CHECKS_PER_DAY,
   CRON_SECRET,
   MAIL_TRANSPORT,
   SITE_URL,

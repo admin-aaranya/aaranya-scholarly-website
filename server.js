@@ -8,7 +8,6 @@ const submissionRoutes = require('./routes/submissions');
 const editorialRoutes = require('./routes/editorial');
 const reviewRoutes = require('./routes/reviews');
 const cronRoutes = require('./routes/cron');
-const assistantRoutes = require('./routes/assistant');
 const productionRoutes = require('./routes/production');
 const publicRoutes = require('./routes/public');
 
@@ -24,7 +23,6 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/editorial', editorialRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/cron', cronRoutes);
-app.use('/api/assistant', assistantRoutes);
 app.use('/api/editorial/production', productionRoutes);
 
 // The public archive: /archive/:journalCode, /issue/:id, /article/:id and the

@@ -351,10 +351,17 @@ router.get('/api/public/latest', async (req, res, next) => {
 // Crawler plumbing
 // ============================================================================
 
-// Served from the app rather than public/robots.txt so it can point at a
-// sitemap. (The file in public/ only reaches the CDN edge when Firebase
-// Hosting serves it directly; this route is what a request to the origin
-// actually gets.)
+// NOTE: in production this route is SHADOWED by public/robots.txt.
+//
+// Firebase Hosting serves a matching static file before it applies the
+// rewrite to Cloud Run, so a crawler hitting aaranyascholarly.com/robots.txt
+// gets the file, not this. This route is what answers on localhost and on
+// the raw Cloud Run URL.
+//
+// Both are kept deliberately, and must be kept in step: the static one is
+// what the world reads, and this one is what a developer sees locally. A
+// change to either without the other is how the live rules and the ones you
+// tested quietly diverge.
 router.get('/robots.txt', (_req, res) => {
   cachePublic(res, 3600);
   res.type('text/plain').send(

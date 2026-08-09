@@ -6,9 +6,22 @@
 # IMPORTANT: do not add an index.html to this folder. Firebase Hosting
 # serves matching static files BEFORE applying rewrites, so an index.html
 # here would shadow the real homepage coming from Cloud Run.
+#
+# THIS FILE IS THE ONE CRAWLERS ACTUALLY GET. For exactly the reason above,
+# it shadows the /robots.txt route in routes/public.js — that route only
+# answers when the app is reached directly (localhost, or the raw Cloud Run
+# URL). Keep the two in step: an edit here without the matching edit there
+# is how the live rules and the tested rules drift apart.
 
 User-agent: *
 Allow: /
+
+# The public archive. Listed explicitly because these are the pages that
+# matter most for indexing and there is no static file behind any of them —
+# they are all rendered by Cloud Run through the rewrite.
+Allow: /article/
+Allow: /issue/
+Allow: /archive/
 
 # Author accounts, the editorial workflow, and reviewer areas are all
 # behind login and contain personal data — keep them out of search results.
@@ -17,6 +30,9 @@ Disallow: /submission.html
 Disallow: /submit.html
 Disallow: /editor.html
 Disallow: /editor-submission.html
+Disallow: /editor-issues.html
 Disallow: /reviewer.html
 Disallow: /review.html
 Disallow: /api/
+
+Sitemap: https://aaranyascholarly.com/sitemap.xml

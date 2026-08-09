@@ -134,10 +134,11 @@ Authors → Files & Declarations → Review & Submit) that captures:
 - Required declarations (originality, publication-ethics compliance) plus
   optional ethical-approval details and a conflict-of-interest statement
 
-Every submission gets a status timeline (starts at "Submitted"); `submission.html?id=...`
-shows the full record and lets the author re-download every file. This is
-author-side only — there's no editor/reviewer view yet to move a submission
-past "Submitted" (see "Extending this later" below).
+Every submission gets a status timeline (starts at "Submitted");
+`submission.html?id=...` shows the full record, the author's own copyediting
+and proof files, and lets them re-download everything. The editor and
+reviewer sides that move a submission onward are covered under "Editorial
+workflow" below.
 
 ## How accounts work
 
@@ -392,50 +393,6 @@ would have gone out.
 Setup is in **`docs/email-setup.md`** — Admin console relay config, App
 Password, and a troubleshooting table.
 
-### Manuscript assistant (authors, optional)
-
-An optional AI check an author can run on their own manuscript at step 4 of
-the submission form, before submitting. It reports on formatting, spelling and
-grammar, and completeness of reporting — a missing sample size, an unnamed
-statistical test, an aim with no matching result. Setup is one button:
-`0-RUN-SETUP-AI.bat`.
-
-Four decisions define it, and all four are load-bearing:
-
-**Vertex AI, never the free Gemini API.** Manuscripts are unpublished,
-confidential, third-party research. Under Vertex AI's terms Google does not
-train on customer content; under the free AI Studio tier it *does*, and the
-terms explicitly warn against submitting confidential data. So this runs
-inside our own GCP project on a keyless service account, with no API key
-anywhere in the codebase.
-
-**Authors only.** There is no editor route and no reviewer route into
-`routes/assistant.js`. Peer review here is a human judgement, and an AI
-opinion an editor could read would start shaping decisions however carefully
-it was labelled advisory. Revisiting this needs a published AI policy on the
-journal pages first, not a code change first.
-
-**It cannot block a submission.** Optional, never stored against the
-submission, and every failure path — model down, unreadable file, quota spent
-— ends in a message and nothing else.
-
-**It cannot deliver a verdict.** The prompt forbids judging novelty,
-significance, or publishability, and the response schema has no field a
-verdict could occupy. A test asserts the words `accept`, `reject`, `score`,
-`rating` and `recommendation` appear nowhere in the schema, so an edit that
-adds one fails the build.
-
-PDFs go to Gemini as bytes — it reads the document natively, tables and all.
-Word files are extracted by `lib/docx-text.js`, a dependency-free zip reader
-that deliberately skips text deleted under tracked changes.
-
-Cost is capped at 5 checks per author per rolling 24 hours, counted on the
-user record rather than in memory (Cloud Run runs several instances, and an
-in-memory counter would give each author the full quota *per instance*).
-
-Full rationale, troubleshooting, and what to do when Google retires a model
-ID: **`docs/ai-assistant.md`**.
-
 ### Copyediting, production and publication
 
 Everything after acceptance: the file rounds between editor and author, the
@@ -495,7 +452,7 @@ its issue has been released. One rule, one function, in `routes/public.js`.
 npm test
 ```
 
-Seven suites, 253 assertions:
+Seven suites, 214 assertions:
 
 - `test/workflow.test.js` (29) — stage-transition rules and the anonymity
   guarantees in the API.
@@ -509,10 +466,11 @@ Seven suites, 253 assertions:
   The failure that matters is chasing an unpaid volunteer six times.
 - `test/scoping.test.js` (22) — journal-scoped roles, and the lockout safety
   that keeps a bootstrap editor from being locked out of their own journal.
-- `test/assistant.test.js` (52) — that the AI assistant cannot drift into
-  peer review (the prompt forbids it *and* the response schema has nowhere to
-  put a verdict), survives a malformed model response without crashing the
-  page, and cannot have its cost quota bypassed.
+- `test/docx-text.test.js` (13) — the dependency-free Word reader: real
+  deflated `.docx` round-trips, entity decoding, and that text the author
+  deleted under tracked changes never comes out. `lib/galley.js` builds the
+  published HTML full text from this, so a silent failure here reaches the
+  version of record.
 - `test/production.test.js` (54) — copyediting file visibility, the publish
   gate, issue validation and collision, and that a manuscript containing
   `<script>` comes out of the galley generator escaped. That last one is
@@ -557,10 +515,6 @@ your own `data/`.
 | `MAIL_DOMAIN` | no | Defaults to `aaranyascholarly.com` |
 | `EDITOR_EMAILS` | first run | Bootstrap editors, comma-separated |
 | `EDITORIAL_NOTIFY_EMAILS` | no | Where editorial notices go; falls back to `EDITOR_EMAILS` |
-| `GEMINI_ENABLED` | no | `true` turns on the manuscript assistant; off hides it entirely |
-| `VERTEX_LOCATION` | no | Defaults `asia-south1`, keeping manuscripts in Mumbai |
-| `GEMINI_MODEL` | no | Defaults `gemini-2.5-flash`; confirm with `npm run probe-gemini` |
-| `AI_CHECKS_PER_DAY` | no | Per-author cost cap, rolling 24h. Defaults 5 |
 | `PORT` | no | Defaults to 4000 locally; Cloud Run sets this itself |
 
 ## Extending this later
