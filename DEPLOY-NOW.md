@@ -131,27 +131,18 @@ if the custom domain is live, otherwise `https://aaranya-scholarly.web.app`.
 
 ---
 
-## 4b. Clear the leftover AI settings (housekeeping)
+## 4b. AI leftovers — nothing to do (verified)
 
-The manuscript assistant has been removed from the code. Any Vertex settings
-still attached to the Cloud Run service are now inert, but leaving them there
-means the next person reads them as evidence the feature exists.
+The manuscript assistant is gone from the code, and `0-RUN-STATUS.bat`
+confirms there is nothing to clean up in Google Cloud either:
 
-```powershell
-gcloud run services update aaranya-website ^
-  --region=asia-south1 ^
-  --project=aaranya-scholarly ^
-  --remove-env-vars="GEMINI_ENABLED,VERTEX_LOCATION,GEMINI_MODEL,AI_CHECKS_PER_DAY"
-```
+- no `GEMINI_*` or `AI_CHECKS_PER_DAY` variables on the Cloud Run service
+- the **Vertex AI API was never enabled** on the project
+- the runtime service account does **not** hold `roles/aiplatform.user`
 
-Two things this does *not* undo, both of which cost nothing to leave and are
-yours to decide on:
-
-- The **Vertex AI API** is still enabled on the project. Harmless while
-  nothing calls it — no requests, no charges.
-- The runtime service account may still hold **`roles/aiplatform.user`**. If
-  you want it gone, remove that binding in IAM. Worth doing on the general
-  principle that an account shouldn't carry a permission nothing uses.
+That is because the assistant's setup script failed at its very first step
+(enabling the API) and never ran the rest. The feature existed only in the
+code, and the code is now gone. No cost, no permissions, no residue.
 
 ## 5. Tell me it's done
 
