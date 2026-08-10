@@ -13,8 +13,10 @@ REM  pointing it at an ugly one - reviewers get invitations they
 REM  cannot open, and search engines index canonical URLs that
 REM  404.
 REM
-REM  Switch to the custom domain later, with 0-RUN-SET-DOMAIN.bat,
-REM  but only AFTER that domain serves the site.
+REM  TARGET is the custom domain, which went live on 10-08-2026.
+REM  If it ever stops serving, point this at
+REM  https://aaranya-scholarly.web.app instead - the script refuses
+REM  to set SITE_URL to a host that is not answering.
 REM ============================================================
 
 set "OUT=%~dp0_siteurl.txt"
@@ -22,7 +24,7 @@ set "GC=%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 set "PROJECT=aaranya-scholarly"
 set "REGION=asia-south1"
 set "SERVICE=aaranya-website"
-set "TARGET=https://aaranya-scholarly.web.app"
+set "TARGET=https://journals.aaranyascholarly.com"
 
 title Fix SITE_URL
 cd /d "%~dp0"

@@ -126,8 +126,9 @@ gcloud run services update aaranya-website ^
   --update-env-vars="SITE_URL=https://aaranyascholarly.com"
 ```
 
-Use whichever domain readers actually visit — `https://aaranyascholarly.com`
-if the custom domain is live, otherwise `https://aaranya-scholarly.web.app`.
+Done — `journals.aaranyascholarly.com` went live on 10-08-2026 and `SITE_URL`
+now points at it. The bare `aaranyascholarly.com` is still a GoDaddy parking
+page; the journal lives on the `journals.` subdomain.
 
 ---
 

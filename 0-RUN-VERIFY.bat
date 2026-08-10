@@ -10,9 +10,9 @@ REM  Checks BOTH hosts on purpose:
 REM
 REM    web.app  - Firebase Hosting in front of Cloud Run. This is
 REM               the real site.
-REM    custom   - aaranyascholarly.com. If this returns a page that
-REM               does not match web.app, the domain is not
-REM               actually pointing at Firebase.
+REM    custom   - journals.aaranyascholarly.com, live since
+REM               10-08-2026 and now the canonical host. Both are
+REM               checked so a divergence between them is visible.
 REM
 REM  The check that matters most is the sitemap hostname: every
 REM  canonical link and Google Scholar citation URL on the public
@@ -22,7 +22,7 @@ REM ============================================================
 
 set "OUT=%~dp0_verify.txt"
 set "WEBAPP=https://aaranya-scholarly.web.app"
-set "CUSTOM=https://aaranyascholarly.com"
+set "CUSTOM=https://journals.aaranyascholarly.com"
 
 title Verify the live site
 cd /d "%~dp0"

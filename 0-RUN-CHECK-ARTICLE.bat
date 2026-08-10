@@ -17,7 +17,7 @@ REM  Writes _article.txt.
 REM ============================================================
 
 set "OUT=%~dp0_article.txt"
-set "SITE=https://aaranya-scholarly.web.app"
+set "SITE=https://journals.aaranyascholarly.com"
 set "JOURNAL=%~1"
 if "%JOURNAL%"=="" set "JOURNAL=alstm"
 

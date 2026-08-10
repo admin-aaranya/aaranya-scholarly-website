@@ -10,8 +10,10 @@ Firestore, Cloud Storage and Google Workspace mail. Those are exactly the
 things a test harness cannot exercise, and exactly the things that fail in
 ways nobody notices until an author is waiting.
 
-The site is **https://aaranya-scholarly.web.app** until the custom domain is
-connected.
+The site is **https://journals.aaranyascholarly.com**. The old
+`aaranya-scholarly.web.app` address still works and serves the same thing,
+but it is no longer the canonical one — use the custom domain so what you see
+matches what a reader and a search engine will see.
 
 ---
 
