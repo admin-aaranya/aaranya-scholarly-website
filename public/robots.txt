@@ -35,11 +35,12 @@ Disallow: /reviewer.html
 Disallow: /review.html
 Disallow: /api/
 
-# Must name the host that actually serves the site. aaranyascholarly.com is
-# registered but its A records still point at GoDaddy's parking page, so a
-# crawler following a Sitemap: line there would be handed the parking
-# lander's sitemap instead of ours.
+# Must name the host that actually serves the site, and must agree with
+# SITE_URL on the Cloud Run service -- SITE_URL is what generates the
+# canonical tags and the <loc> entries inside the sitemap itself. If the two
+# disagree, this file points crawlers at a sitemap full of URLs for a
+# different hostname.
 #
-# Change this to the custom domain at the same time as SITE_URL on Cloud Run
-# (0-RUN-SET-DOMAIN.bat), and not before.
-Sitemap: https://aaranya-scholarly.web.app/sitemap.xml
+# The bare domain aaranyascholarly.com is still a GoDaddy parking page; the
+# journal lives on the journals. subdomain.
+Sitemap: https://journals.aaranyascholarly.com/sitemap.xml
