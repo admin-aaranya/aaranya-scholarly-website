@@ -65,7 +65,10 @@ if errorlevel 1 (
 call "%GC%" run services describe %SERVICE% --region=%REGION% --project=%PROJECT% --format="value(status.latestReadyRevisionName)" >> "%OUT%" 2>&1
 
 >> "%OUT%" echo --- site check ---
-curl -s -o nul -w "web.app HTTP=%%{http_code}" "https://aaranya-scholarly.web.app/api/auth/journals" >> "%OUT%" 2>&1
+curl -s -o nul -w "site HTTP=%%{http_code}" "https://journals.aaranyascholarly.com/api/auth/journals" >> "%OUT%" 2>&1
+>> "%OUT%" echo.
+REM web.app must now answer 301 - it is redirected to the canonical host.
+curl -s -o nul -w "web.app redirect HTTP=%%{http_code}" "https://aaranya-scholarly.web.app/" >> "%OUT%" 2>&1
 >> "%OUT%" echo.
 
 >> "%OUT%" echo RESULT=DEPLOYED
@@ -73,7 +76,7 @@ curl -s -o nul -w "web.app HTTP=%%{http_code}" "https://aaranya-scholarly.web.ap
 
 echo.
 echo  ============================================
-echo   Deployed. https://aaranya-scholarly.web.app
+echo   Deployed. https://journals.aaranyascholarly.com
 echo  ============================================
 timeout /t 12 /nobreak >nul
 endlocal

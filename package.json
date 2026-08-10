@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/workflow.test.js && node test/email.test.js && node test/gmail.test.js && node test/reminders.test.js && node test/scoping.test.js && node test/docx-text.test.js && node test/production.test.js",
+    "test": "node test/workflow.test.js && node test/email.test.js && node test/gmail.test.js && node test/reminders.test.js && node test/scoping.test.js && node test/docx-text.test.js && node test/canonical-host.test.js && node test/production.test.js",
     "test:e2e": "node test/run-e2e.js"
   },
   "dependencies": {

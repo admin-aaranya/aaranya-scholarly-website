@@ -1,8 +1,9 @@
 const express = require('express');
 const path = require('path');
 
-const { PORT } = require('./config');
+const { PORT, SITE_URL } = require('./config');
 const { ensureStore } = require('./db');
+const { canonicalHost } = require('./lib/canonical-host');
 const authRoutes = require('./routes/auth');
 const submissionRoutes = require('./routes/submissions');
 const editorialRoutes = require('./routes/editorial');
@@ -14,6 +15,15 @@ const publicRoutes = require('./routes/public');
 ensureStore();
 
 const app = express();
+
+// One address for the journal. Every public host other than SITE_URL is
+// 301'd to it -- Firebase Hosting's *.web.app domain cannot be switched off,
+// so this is how it stops being a second front door. Mounted first, so a
+// redirected request never reaches a route or the datastore.
+//
+// Deliberately does not touch POSTs, the raw *.run.app URL, or localhost.
+// See lib/canonical-host.js for why each of those would break something.
+app.use(canonicalHost(SITE_URL));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
