@@ -565,6 +565,17 @@
   async function loadGalleys(){
     const panel = document.getElementById('galleyPanel');
     const s = state.submission;
+    // Galleys genuinely cannot be added before Production -- the API refuses
+    // them, because the text is still moving. But say so rather than showing
+    // an empty space where a panel should be.
+    if (s.stage === 'copyediting'){
+      panel.style.display = 'block';
+      document.getElementById('galleyWrap').innerHTML =
+        '<p class="hint">Galleys open once you record <b>Send to Production</b> above. ' +
+        'Until then the text can still change, so there is nothing stable to typeset.</p>';
+      document.getElementById('galleyFormsWrap').innerHTML = '';
+      return;
+    }
     if (s.stage !== 'production' && s.stage !== 'published'){
       panel.style.display = 'none';
       return;
@@ -698,7 +709,11 @@
   async function loadPublication(){
     const panel = document.getElementById('pubPanel');
     const s = state.submission;
-    if (s.stage !== 'production' && s.stage !== 'published'){
+    // Available from acceptance onwards, not just in Production. An editor
+    // knows which issue a paper is going into well before it is typeset, and
+    // the API has never restricted this -- only the panel did, which made a
+    // working feature look like a missing one.
+    if (['copyediting','production','published'].indexOf(s.stage) === -1){
       panel.style.display = 'none';
       return;
     }
@@ -708,10 +723,21 @@
     const current = s.issueId || '';
     const blockers = state.publishBlockers || [];
 
+    // At copyediting the galley blocker is expected rather than a problem --
+    // galleys are not addable yet. Saying so stops the list reading as a
+    // fault the editor is supposed to fix right now.
+    const early = s.stage === 'copyediting';
+
     document.getElementById('pubWrap').innerHTML =
       (blockers.length
-        ? '<div class="declaration-box" style="margin-bottom:14px;"><b>Before this can be published:</b><ul style="margin:8px 0 0 18px;font-size:13px;">' +
-          blockers.map(function(b){ return '<li>' + esc(b) + '</li>'; }).join('') + '</ul></div>'
+        ? '<div class="declaration-box" style="margin-bottom:14px;"><b>' +
+          (early ? 'Still to come before publication:' : 'Before this can be published:') +
+          '</b><ul style="margin:8px 0 0 18px;font-size:13px;">' +
+          blockers.map(function(b){ return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>' +
+          (early
+            ? '<div class="hint" style="margin-top:8px;">You can set the issue and pages now — the galley comes after ' +
+              '<b>Send to Production</b>.</div>'
+            : '') + '</div>'
         : '<div class="declaration-box" style="margin-bottom:14px;background:#eef7f3;border-color:#bfe0d0;">' +
           '<b>Ready to publish.</b> Publishing places it in the issue; readers see it once that issue is released.</div>') +
       '<div class="form-grid-2">' +
