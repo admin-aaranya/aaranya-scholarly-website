@@ -18,7 +18,7 @@ REM  would upload the code and never run the pipeline.
 REM ============================================================
 
 set "OUT=%~dp0_push.txt"
-set "REMOTE=https://github.com/aaranyapublishing/aaranya-scholarly-website.git"
+set "REMOTE=https://github.com/admin-aaranya/aaranya-scholarly-website.git"
 
 title Push to GitHub
 cd /d "%~dp0"
@@ -73,7 +73,7 @@ echo  ============================================
 echo   Pushed. Your code now exists somewhere
 echo   other than this disk.
 echo.
-echo   https://github.com/aaranyapublishing/aaranya-scholarly-website
+echo   https://github.com/admin-aaranya/aaranya-scholarly-website
 echo  ============================================
 echo.
 pause
