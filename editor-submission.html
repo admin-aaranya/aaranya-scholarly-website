@@ -762,7 +762,10 @@
         '</select>' +
         (issues.length ? '' : (failed
           ? '<div class="hint" style="color:#a12626;">Could not load the issue list. Reload the page; if it persists, tell me.</div>'
-          : '<div class="hint">No issues exist for this journal yet — create one on the <a href="editor-issues.html" style="color:var(--teal);font-weight:600;" target="_blank">Issues</a> page, then reopen this page.</div>')) +
+          : '<div class="hint">No issues exist for <b>' + esc(s.journalName) + '</b> yet. ' +
+            'Create one on the <a href="editor-issues.html" style="color:var(--teal);font-weight:600;" target="_blank">Issues</a> page ' +
+            '<b>choosing that journal</b>, then reopen this page.<br>' +
+            'An issue belongs to one journal — an issue created for a different journal will not appear here.</div>')) +
         '</div>' +
         '<div class="form-row"><label for="pubPages">Pages</label><input type="text" id="pubPages" placeholder="112-125" value="' + esc(s.pages || '') + '"></div>' +
         '<div class="form-row"><label for="pubDoi">DOI</label><input type="text" id="pubDoi" placeholder="10.1234/alstm.2026.001" value="' + esc(s.doi || '') + '"></div>' +

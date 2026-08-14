@@ -202,6 +202,10 @@
 
   async function create(){
     clearAlert();
+    if (!document.getElementById('njJournal').value){
+      showAlert('Choose which journal this issue belongs to. An issue lives in one journal, and only that journal\'s articles can be assigned to it.');
+      return;
+    }
     try {
       await api(PROD + '/issues', json({
         journalCode: document.getElementById('njJournal').value,
@@ -226,9 +230,14 @@
 
       const jSel = document.getElementById('njJournal');
       if (!jSel.options.length){
-        jSel.innerHTML = codes.map(function(c){
-          return '<option value="' + esc(c) + '">' + esc(journals[c]) + '</option>';
-        }).join('');
+        // No pre-selected journal. The dropdown used to default to whichever
+        // journal happened to be first, so an issue created without touching
+        // it landed silently on the wrong journal -- and then never appeared
+        // in the issue list of the article it was meant for.
+        jSel.innerHTML = '<option value="">— choose a journal —</option>' +
+          codes.map(function(c){
+            return '<option value="' + esc(c) + '">' + esc(journals[c]) + '</option>';
+          }).join('');
         document.getElementById('njYear').value = new Date().getFullYear();
       }
 
