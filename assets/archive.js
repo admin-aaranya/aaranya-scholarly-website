@@ -1,18 +1,23 @@
 /* ============================================================
-   AARANYA SCHOLARLY — live archive strip for the journal pages.
+   AARANYA SCHOLARLY — journal landing page article rail.
 
-   Each journals/*.html ships a hand-written "Volume 1, Issue 1 is
-   in preparation" placeholder inside #archive. That is the right
-   thing to show a visitor until something is actually published,
-   so this script leaves it alone and only replaces it once the
-   public API reports released issues.
+   Fills #jcContent on journals/*.html with what the journal has
+   actually published: a lead article, a featured grid, and the
+   current issue's contents.
 
-   Failing quietly is deliberate: if the API is unreachable, the
-   visitor still sees the placeholder rather than a broken panel.
+   THE PRE-LAUNCH STATE IS THE DEFAULT, AND IT IS SERVER-RENDERED.
+   The call for papers is written into the page HTML, not produced
+   here. So a visitor with JavaScript disabled, a slow connection,
+   or a failed API call still sees a complete page that asks for
+   submissions — never a spinner and never a blank shelf. This
+   script only ever REPLACES that state, and only once it has real
+   articles in hand.
+
+   Every failure path therefore ends in "leave the page alone".
 
    The journal code comes from the filename, so this file is
-   identical on all seven pages and there is nothing per-journal
-   to keep in sync.
+   identical on all seven pages with nothing per-journal to keep
+   in sync.
    ============================================================ */
 (function () {
   function journalCode() {
@@ -30,87 +35,126 @@
     if (!d) return '';
     var parsed = new Date(d);
     if (isNaN(parsed)) return '';
-    return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+    return parsed.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  function authorLine(authors) {
-    return (authors || [])
-      .map(function (a) { return esc(a.name); })
-      .join(', ');
+  // "Sharma R., Patel A." — trimmed, because a card cannot carry
+  // fourteen names and stay readable.
+  function authorLine(authors, max) {
+    var list = (authors || []).map(function (a) { return esc(a.name); });
+    if (!list.length) return '';
+    if (list.length > max) return list.slice(0, max).join(', ') + ' <i>et al.</i>';
+    return list.join(', ');
   }
 
-  function render(section, code, issues, latest) {
-    var head = section.querySelector('.tabs-head');
-    var empty = section.querySelector('.empty-state');
+  function typeAndDate(a) {
+    var bits = [];
+    if (a.articleType) bits.push(esc(a.articleType));
+    var d = fmtDate(a.publishedAt);
+    if (d) bits.push(d);
+    return bits.join(' &middot; ');
+  }
 
-    var html =
-      '<div class="panel">' +
-        '<div class="panel-head">' +
-          '<div><h3>Latest articles</h3>' +
-          '<p class="panel-sub">Most recently published across all issues.</p></div>' +
-          '<a class="btn btn-outline btn-sm" href="/archive/' + esc(code) + '">Browse the full archive</a>' +
+  function leadHtml(a, code) {
+    return '<div class="jc-lead">' +
+      '<div>' +
+        '<div class="jc-kicker">Latest</div>' +
+        '<h3><a href="' + esc(a.url) + '">' + esc(a.title) + '</a></h3>' +
+        '<div class="jc-authors">' + authorLine(a.authors, 6) + '</div>' +
+        '<div class="jc-meta">' + typeAndDate(a) +
+          (a.pages ? ' &middot; pp. ' + esc(a.pages) : '') + '</div>' +
+      '</div>' +
+      '<div class="jc-figure"><div>' +
+        '<div class="jc-figmark">' + esc(code.toUpperCase()) + '</div>' +
+        '<div class="jc-figsub">' + esc(a.issueLabel || '') + '</div>' +
+      '</div></div>' +
+    '</div>';
+  }
+
+  function cardHtml(a, code) {
+    return '<div class="jc-card">' +
+      '<div class="jc-thumb">' + esc(code.toUpperCase()) + '</div>' +
+      '<h4><a href="' + esc(a.url) + '">' + esc(a.title) + '</a></h4>' +
+      '<div class="jc-authors">' + authorLine(a.authors, 3) + '</div>' +
+      '<div class="jc-meta">' + typeAndDate(a) + '</div>' +
+    '</div>';
+  }
+
+  function issueHtml(issue, articles, code) {
+    var items = articles.map(function (a) {
+      return '<li><a href="' + esc(a.url) + '">' + esc(a.title) + '</a>' +
+        '<div class="jc-authors">' + authorLine(a.authors, 4) +
+        (a.pages ? ' &middot; pp. ' + esc(a.pages) : '') + '</div></li>';
+    }).join('');
+
+    return '<div class="jc-head" style="margin-top:34px;">' +
+        '<h2>Current issue</h2>' +
+        '<a href="' + esc(issue.url) + '">Full contents &rarr;</a>' +
+      '</div>' +
+      '<div class="jc-issue">' +
+        '<ul class="jc-toc">' + items + '</ul>' +
+        '<div class="jc-cover">' +
+          '<div class="cv-vol">' + esc(issue.label) + '</div>' +
+          '<div class="cv-code">' + esc(code.toUpperCase()) + '</div>' +
+          '<div class="cv-name">' + (issue.publishedAt ? 'Published ' + esc(fmtDate(issue.publishedAt)) : '') + '</div>' +
+          '<a class="btn btn-gold btn-sm" href="' + esc(issue.url) + '">Read this issue</a>' +
         '</div>' +
-        latest.map(function (a) {
-          return '<div style="padding:14px 0;border-bottom:1px solid var(--line);">' +
-            '<div style="font-size:15.5px;line-height:1.4;margin-bottom:4px;">' +
-              '<a href="' + esc(a.url) + '" style="color:var(--ink);text-decoration:none;font-weight:600;">' + esc(a.title) + '</a>' +
-            '</div>' +
-            '<div style="font-size:12.5px;color:var(--muted);">' + authorLine(a.authors) + '</div>' +
-            '<div style="font-size:12px;color:var(--muted);margin-top:3px;">' +
-              esc(a.issueLabel || '') + (a.pages ? ' · pp. ' + esc(a.pages) : '') +
-              (a.doi ? ' · <a href="https://doi.org/' + esc(a.doi) + '" style="color:var(--teal);">doi:' + esc(a.doi) + '</a>' : '') +
-            '</div>' +
-          '</div>';
-        }).join('') +
       '</div>';
+  }
 
-    if (issues.length) {
-      html +=
-        '<div class="panel">' +
-          '<div class="panel-head"><div><h3>Issues</h3>' +
-          '<p class="panel-sub">Every released issue, most recent first.</p></div></div>' +
-          issues.slice(0, 6).map(function (i) {
-            return '<div style="display:flex;justify-content:space-between;gap:16px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--line);">' +
-              '<a href="' + esc(i.url) + '" style="color:var(--ink);text-decoration:none;font-weight:600;font-size:14.5px;">' + esc(i.label) + '</a>' +
-              '<span style="font-size:12px;color:var(--muted);">' + i.articleCount + ' article' + (i.articleCount === 1 ? '' : 's') +
-              (i.publishedAt ? ' · ' + esc(fmtDate(i.publishedAt)) : '') + '</span>' +
-            '</div>';
-          }).join('') +
-          (issues.length > 6
-            ? '<div style="margin-top:12px;"><a class="btn btn-ghost btn-sm" href="/archive/' + esc(code) + '">See all ' + issues.length + ' issues</a></div>'
-            : '') +
+  function render(code, latest, issues, issueArticles) {
+    var target = document.getElementById('jcContent');
+    if (!target) return;
+
+    var html = leadHtml(latest[0], code);
+
+    var rest = latest.slice(1, 5);
+    if (rest.length) {
+      html += '<div class="jc-grid">' +
+        rest.map(function (a) { return cardHtml(a, code); }).join('') +
         '</div>';
     }
 
-    if (empty) empty.outerHTML = html;
-    else section.querySelector('.wrap').insertAdjacentHTML('beforeend', html);
+    if (issues.length && issueArticles && issueArticles.length) {
+      html += issueHtml(issues[0], issueArticles, code);
+    }
 
-    // The placeholder tab strip described content that does not exist yet
-    // ("Most Read", "Articles In-Press"). Once there are real articles it
-    // would be three buttons that do nothing.
-    if (head) head.remove();
+    target.innerHTML = html;
 
-    // Point the nav's Archive dropdown at the real thing.
+    // The nav's Archive dropdown pointed at an in-page anchor that no longer
+    // holds a list. Send it to the real archive instead.
     Array.prototype.forEach.call(document.querySelectorAll('a[href="#archive"]'), function (a) {
-      if (a.closest('.dropdown')) a.setAttribute('href', '/archive/' + code);
+      a.setAttribute('href', '/archive/' + code);
     });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var section = document.getElementById('archive');
     var code = journalCode();
-    if (!section || !code) return;
+    if (!code || !document.getElementById('jcContent')) return;
+
+    var api = function (path) {
+      return fetch(path).then(function (r) { return r.ok ? r.json() : null; });
+    };
 
     Promise.all([
-      fetch('/api/public/journals/' + encodeURIComponent(code) + '/issues').then(function (r) { return r.ok ? r.json() : { issues: [] }; }),
-      fetch('/api/public/latest?journal=' + encodeURIComponent(code) + '&limit=5').then(function (r) { return r.ok ? r.json() : { articles: [] }; })
+      api('/api/public/latest?journal=' + encodeURIComponent(code) + '&limit=5'),
+      api('/api/public/journals/' + encodeURIComponent(code) + '/issues')
     ])
       .then(function (res) {
-        var issues = (res[0] && res[0].issues) || [];
-        var latest = (res[1] && res[1].articles) || [];
-        if (!latest.length) return; // nothing published yet — keep the placeholder
-        render(section, code, issues, latest);
+        var latest = (res[0] && res[0].articles) || [];
+        var issues = (res[1] && res[1].issues) || [];
+
+        // Nothing published: leave the call for papers exactly as served.
+        if (!latest.length) return null;
+
+        if (!issues.length) return render(code, latest, [], []);
+
+        // One more call for the current issue's table of contents.
+        return api('/api/public/issues/' + encodeURIComponent(issues[0].id))
+          .then(function (d) {
+            render(code, latest, issues, (d && d.articles) || []);
+          });
       })
-      .catch(function () { /* keep the placeholder */ });
+      .catch(function () { /* leave the pre-launch state in place */ });
   });
 })();
