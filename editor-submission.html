@@ -418,7 +418,6 @@
   // ---- Copyediting & production ----
 
   const PROD = '/api/editorial/production';
-  let issueCache = null;
 
   function fmtSize(bytes){
     if (!bytes) return '';
@@ -695,15 +694,26 @@
 
   // ---- Publication details ----
 
+  // Deliberately not cached.
+  //
+  // It used to be, and the cache held an EMPTY list just as happily as a full
+  // one. Open this page before creating any issue, go and create one, come
+  // back to the same tab, and the dropdown stayed empty forever -- every
+  // re-render read the stale cache instead of asking again. Publishing
+  // re-renders, so the symptom looked like "after publishing I cannot assign
+  // an issue".
+  //
+  // The request is small and only happens when this panel draws. Correctness
+  // is worth more than saving it.
   async function loadIssues(journalCode){
-    if (issueCache) return issueCache;
     try {
       const res = await A.apiFetch(PROD + '/issues?journal=' + encodeURIComponent(journalCode));
       if (!res.ok) throw new Error('failed');
       const d = await res.json();
-      issueCache = d.issues || [];
-    } catch(e){ issueCache = []; }
-    return issueCache;
+      return d.issues || [];
+    } catch(e){
+      return null; // null means "could not load", which is not the same as "none exist"
+    }
   }
 
   async function loadPublication(){
@@ -719,7 +729,9 @@
     }
     panel.style.display = 'block';
 
-    const issues = await loadIssues(s.journalCode);
+    const loaded = await loadIssues(s.journalCode);
+    const failed = loaded === null;
+    const issues = loaded || [];
     const current = s.issueId || '';
     const blockers = state.publishBlockers || [];
 
@@ -748,7 +760,9 @@
               esc(i.label) + (i.status === 'published' ? ' (released)' : ' (planned)') + '</option>';
           }).join('') +
         '</select>' +
-        (issues.length ? '' : '<div class="hint">No issues exist for this journal yet — create one on the <a href="editor-issues.html" style="color:var(--teal);font-weight:600;">Issues</a> page.</div>') +
+        (issues.length ? '' : (failed
+          ? '<div class="hint" style="color:#a12626;">Could not load the issue list. Reload the page; if it persists, tell me.</div>'
+          : '<div class="hint">No issues exist for this journal yet — create one on the <a href="editor-issues.html" style="color:var(--teal);font-weight:600;" target="_blank">Issues</a> page, then reopen this page.</div>')) +
         '</div>' +
         '<div class="form-row"><label for="pubPages">Pages</label><input type="text" id="pubPages" placeholder="112-125" value="' + esc(s.pages || '') + '"></div>' +
         '<div class="form-row"><label for="pubDoi">DOI</label><input type="text" id="pubDoi" placeholder="10.1234/alstm.2026.001" value="' + esc(s.doi || '') + '"></div>' +
