@@ -517,6 +517,13 @@ your own `data/`.
 | `EDITORIAL_NOTIFY_EMAILS` | no | Where editorial notices go; falls back to `EDITOR_EMAILS` |
 | `PORT` | no | Defaults to 4000 locally; Cloud Run sets this itself |
 
+## What's outstanding
+
+The standing list of pending work lives in **`TODO.md`** — ISSNs, the licence
+decision, the first real publication, and the known defects. It is kept in
+the repo deliberately, so "what is still pending" has an answer that does not
+depend on anyone remembering.
+
 ## Extending this later
 
 Still missing, in rough priority order:

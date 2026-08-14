@@ -1,0 +1,130 @@
+# Outstanding work
+
+The standing list. Kept in the repo rather than in anyone's head, and
+updated as things land — if you are wondering "what is still pending", this
+file is the answer, not a memory.
+
+Last reviewed: 14 August 2026
+
+---
+
+## Blocking a real launch
+
+### 1. Assign ISSNs to all seven journals
+
+Every journal page currently reads **"ISSN — to be assigned"** in its
+navigation block, and the public article pages carry no ISSN at all.
+
+This matters more than it looks:
+
+- **Indexers require it.** DOAJ, Scopus, Crossref and most national library
+  systems will not process an application without one. It is usually the
+  first field on the form.
+- **It is per journal, not per publisher.** Seven journals means seven
+  applications, and a separate ISSN for the online and print versions of the
+  same title if you ever produce print.
+- **It is free and slow.** In India this goes through the National Science
+  Library, CSIR-NISCPR, New Delhi, which issues ISSNs on behalf of the
+  international centre. Expect weeks, not days — which is why it is worth
+  starting before you need it.
+- **They want to see a live site.** Applications ask for the journal URL and
+  evidence the journal exists. The pages are live, which is the prerequisite
+  that used to be missing.
+
+When they arrive, they go in three places: the journal navigation block on
+each `journals/*.html` page, the article landing pages
+(`lib/public-pages.js`), and the Scholar citation metadata. Tell me the
+numbers and I will wire all three.
+
+### 2. Decide the default licence
+
+"Open Access" is on every page of the site. Nothing states a licence, and the
+per-article licence field is optional and currently blank.
+
+CC BY 4.0 is the conventional choice for a genuinely open-access journal.
+Whatever you pick has to appear in the author guidelines, not just in a field
+an editor might forget to fill.
+
+DOAJ asks for this explicitly. A masthead promise the article pages do not
+back up is what an assessor notices.
+
+### 3. Publish one article end to end
+
+The archive works but is empty. The whole path — submit, accept, copyedit,
+generate the galley, assemble an issue, publish, release — has run against a
+local server but never fully against production Firestore, Cloud Storage and
+Workspace mail.
+
+See `docs/first-publication-walkthrough.md`. `sample-manuscript.docx` is
+ready in the parent folder.
+
+---
+
+## Known defects
+
+### 4. Bare-domain paths return 404
+
+`aaranyascholarly.com` redirects to `journals.aaranyascholarly.com`, but only
+at the root. `aaranyascholarly.com/article/<id>` returns 404 rather than
+following through.
+
+That is the obvious shortening of a citation, and the one people type from
+memory. Fix is in GoDaddy: Domain → Forwarding → enable path forwarding.
+Keep masking **off**. Verify with `0-RUN-DNS-CHECK.bat`.
+
+---
+
+## Worth doing before promoting the journals
+
+### 5. Confirm which mail path is actually sending
+
+There is an SMTP password in Secret Manager *and* `GMAIL_ENABLED=true` with
+Workspace impersonation. One of the two is winning and one is vestigial;
+nobody has established which. Mail failures are swallowed by design, so a
+misconfiguration is silent — you would simply never hear about submissions.
+
+Step 1 of the publication walkthrough answers this.
+
+### 6. Redirect the web.app address at the Hosting layer
+
+Currently handled in the app (`lib/canonical-host.js`), which works. Doing it
+in Firebase Hosting as well would stop the request reaching Cloud Run at all.
+Minor.
+
+---
+
+## Feature gaps
+
+None of these block anything. Roughly in the order they would matter.
+
+- **Crossref DOI registration.** A DOI can be recorded against an article,
+  but nothing mints or deposits it. Today someone mints it elsewhere and
+  pastes it in. Real support needs a Crossref membership and depositing
+  metadata XML on publication.
+- **Figures, tables and equations in the HTML full text.** The generator
+  works from plain text, so a generated galley is prose and references only.
+  The PDF carries everything else and the article page says so. Fixing it
+  properly means a real `.docx` → HTML converter — a much larger dependency
+  than anything else here.
+- **Full-text search across the archive.** Readers can browse issues and
+  follow links; there is no search over published articles.
+- **Usage statistics.** Downloads and views per article. Authors ask for
+  these, and nothing counts them. This is also what the removed "Most Read"
+  tab would need.
+- **Online-first publication.** An article cannot appear ahead of its issue.
+  The honest fix is a standing "Articles in Press" issue per journal rather
+  than a second visibility rule — see `docs/production-and-issues.md`.
+
+---
+
+## Done
+
+Kept short, but worth recording so the same ground is not re-covered.
+
+- Copyediting and production file rounds, galleys, issue assembly, and the
+  public archive with Google Scholar metadata
+- The AI manuscript assistant, removed entirely — code and cloud resources
+- Custom domain live, canonical, with every other host redirecting to it
+- Source on GitHub, private, and CI/CD deploying on push with no stored key
+- Reviewer reminders confirmed running (Cloud Scheduler, daily 08:00 IST)
+- Journal landing pages rebuilt to lead with content
