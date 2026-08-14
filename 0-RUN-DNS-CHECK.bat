@@ -68,6 +68,13 @@ nslookup -type=A aaranya-scholarly.web.app 8.8.8.8 >> "%OUT%" 2>&1
 curl -s -i "https://%DOMAIN%/" >> "%OUT%" 2>&1
 
 >> "%OUT%" echo.
+>> "%OUT%" echo --- does the bare-domain forward PRESERVE THE PATH? ---
+>> "%OUT%" echo (A citation shortened to the bare domain + path must land on the
+>> "%OUT%" echo  article, not the homepage. Look at the Location: header below --
+>> "%OUT%" echo  it should end in /archive/alstm, not just the domain.)
+curl -s -i "https://%DOMAIN%/archive/alstm" >> "%OUT%" 2>&1
+
+>> "%OUT%" echo.
 >> "%OUT%" echo --- END ---
 
 echo  Done. Results are in _dns.txt
