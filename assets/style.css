@@ -36,19 +36,18 @@ a{color:inherit;text-decoration:none;}
 .utility .home-link:hover{color:#fff;}
 
 /* ---- Brand promise ----
-   Sits between the utility bar and the header on every page, including the
-   server-rendered archive pages built in lib/public-pages.js. Quiet by
-   design: it is a statement of policy, not a call to action, so it reads as
-   part of the masthead rather than competing with it. */
-.brand-promise{background:var(--bg-soft);border-bottom:1px solid var(--line);padding:9px 0;}
-.brand-promise .wrap{
-  display:flex;justify-content:center;align-items:baseline;gap:8px;flex-wrap:wrap;
-  font-family:Georgia,serif;font-size:13.5px;letter-spacing:.05em;color:var(--navy-dark);
+   Lives in the utility bar on every page, including the server-rendered
+   archive in lib/public-pages.js. It sits there rather than in a band of its
+   own so the masthead keeps one voice per line -- and so it cannot appear
+   twice on the same screen. Serif against the bar's sans, which is what
+   makes it read as a statement rather than as navigation. */
+.utility .promise{
+  font-family:Georgia,serif;font-size:13px;letter-spacing:.05em;color:#e6eef3;
+  white-space:nowrap;
 }
-.brand-promise .sep{color:var(--gold);font-weight:700;}
-@media(max-width:560px){
-  .brand-promise{padding:7px 0;}
-  .brand-promise .wrap{font-size:12px;gap:6px;}
+.utility .promise .sep{color:var(--gold);font-weight:700;}
+@media(max-width:760px){
+  .utility .promise{white-space:normal;font-size:12px;}
 }
 
 /* ---- Header ---- */
