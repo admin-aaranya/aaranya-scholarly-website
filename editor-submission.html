@@ -716,7 +716,32 @@
     }
   }
 
-  async function loadPublication(){
+  // What the system would fill in, and where it cannot. Read-only -- asking
+  // for suggestions must never change the record, or an editor merely opening
+  // the page would find pages assigned they never agreed to.
+  //
+  // issueId is passed explicitly so the panel can preview the issue currently
+  // selected in the dropdown, which is not yet the saved one.
+  async function loadSuggestions(issueId){
+    try {
+      const res = await A.apiFetch(PROD + '/submissions/' + id + '/publication/suggestions' +
+        (issueId ? '?issueId=' + encodeURIComponent(issueId) : ''));
+      if (!res.ok) throw new Error('failed');
+      return await res.json();
+    } catch(e){
+      return {}; // no suggestions is a degraded panel, not a broken one
+    }
+  }
+
+  function fieldHint(text, tone){
+    if (!text) return '';
+    return '<div class="hint"' + (tone === 'warn' ? ' style="color:#a97418;"' : '') + '>' + esc(text) + '</div>';
+  }
+
+  // previewIssueId: the issue selected in the dropdown but not yet saved. The
+  // panel has to redraw around it, or an editor who picks a different issue
+  // sees page numbers continuing the sequence of the issue they just left.
+  async function loadPublication(previewIssueId){
     const panel = document.getElementById('pubPanel');
     const s = state.submission;
     // Available from acceptance onwards, not just in Production. An editor
@@ -732,8 +757,11 @@
     const loaded = await loadIssues(s.journalCode);
     const failed = loaded === null;
     const issues = loaded || [];
-    const current = s.issueId || '';
+    const current = previewIssueId === undefined ? (s.issueId || '') : previewIssueId;
     const blockers = state.publishBlockers || [];
+    const hints = await loadSuggestions(current);
+    const sug = hints.suggestions || {};
+    const licences = hints.licences || [];
 
     // At copyediting the galley blocker is expected rather than a problem --
     // galleys are not addable yet. Saying so stops the list reading as a
@@ -767,15 +795,74 @@
             '<b>choosing that journal</b>, then reopen this page.<br>' +
             'An issue belongs to one journal — an issue created for a different journal will not appear here.</div>')) +
         '</div>' +
-        '<div class="form-row"><label for="pubPages">Pages</label><input type="text" id="pubPages" placeholder="112-125" value="' + esc(s.pages || '') + '"></div>' +
-        '<div class="form-row"><label for="pubDoi">DOI</label><input type="text" id="pubDoi" placeholder="10.1234/alstm.2026.001" value="' + esc(s.doi || '') + '"></div>' +
-        '<div class="form-row"><label for="pubOrder">Order in issue</label><input type="number" id="pubOrder" placeholder="1" value="' + (s.articleOrder == null ? '' : esc(s.articleOrder)) + '"></div>' +
-        '<div class="form-row" style="grid-column:1/-1;"><label for="pubLicense">Licence</label><input type="text" id="pubLicense" placeholder="CC BY 4.0" value="' + esc(s.license || '') + '"></div>' +
+        // Pages. Filled from the PDF's own length and the issue's running
+        // total, so ranges cannot silently overlap. Blank stays editable and
+        // says why, rather than offering a number nobody can vouch for.
+        '<div class="form-row"><label for="pubPages">Pages</label>' +
+          '<input type="text" id="pubPages" placeholder="' + esc(sug.pages || '112-125') + '" value="' + esc(s.pages || '') + '">' +
+          (sug.pages && !s.pages
+            ? fieldHint('Suggested: ' + sug.pages + (sug.pdfPageCount ? ' (' + sug.pdfPageCount + ' pages in the PDF, continuing this issue).' : '.'))
+            : fieldHint(sug.pagesReason)) +
+        '</div>' +
+        // DOI. Empty and explained when no Crossref prefix is configured --
+        // a well-formed DOI that resolves nowhere is worse than none.
+        '<div class="form-row"><label for="pubDoi">DOI</label>' +
+          '<input type="text" id="pubDoi" placeholder="' + esc(sug.doi || (hints.doiPrefixConfigured ? '10.1234/alstm.2026.1.1.1' : 'no prefix configured')) + '" value="' + esc(s.doi || '') + '">' +
+          (sug.doi && !s.doi ? fieldHint('Suggested: ' + sug.doi) : fieldHint(sug.doiReason)) +
+        '</div>' +
+        '<div class="form-row"><label for="pubOrder">Order in issue</label>' +
+          '<input type="number" id="pubOrder" min="1" placeholder="' + esc(sug.articleOrder || 1) + '" value="' + (s.articleOrder == null ? '' : esc(s.articleOrder)) + '">' +
+          (s.articleOrder == null && sug.articleOrder
+            ? fieldHint(sug.articleOrder === 1 ? 'First article in this issue.' : 'Next free position in this issue.')
+            : '') +
+        '</div>' +
+        // A real choice, not free text. What the article says it is licensed
+        // under has to match what the journal claims on every page.
+        '<div class="form-row" style="grid-column:1/-1;"><label for="pubLicense">Licence</label>' +
+          '<select id="pubLicense">' +
+            '<option value="">— not set —</option>' +
+            licences.map(function(l){
+              return '<option value="' + esc(l.key) + '"' +
+                (l.key === (s.license || '') ? ' selected' : '') + '>' + esc(l.label) + '</option>';
+            }).join('') +
+            // Anything already stored that is not one of the standard options
+            // is kept rather than quietly reset to something nobody picked.
+            (s.license && !licences.some(function(l){ return l.key === s.license; })
+              ? '<option value="' + esc(s.license) + '" selected>' + esc(s.license) + ' (existing)</option>'
+              : '') +
+          '</select>' +
+          '<div class="hint" id="pubLicenseNote"></div>' +
+        '</div>' +
       '</div>' +
+      ((sug.warnings || []).length
+        ? '<div class="form-alert show" style="margin:14px 0 0;">' +
+          sug.warnings.map(function(w){ return esc(w); }).join('<br>') + '</div>'
+        : '') +
+      '<div style="margin-top:14px;">' +
       '<button class="btn btn-navy btn-sm" id="pubSave">Save Publication Details</button>' +
       (s.stage === 'published'
         ? ' <a class="btn btn-ghost btn-sm" href="/article/' + esc(s.id) + '" target="_blank" rel="noopener">View public page</a>'
-        : '');
+        : '') +
+      '</div>';
+
+    // The licence note explains what the reader is actually being granted.
+    // Shown against the current selection, because "CC BY-NC" and "CC BY" look
+    // alike in a dropdown and mean very different things to a funder.
+    const licSel = document.getElementById('pubLicense');
+    function showLicenceNote(){
+      const chosen = licences.filter(function(l){ return l.key === licSel.value; })[0];
+      document.getElementById('pubLicenseNote').textContent = chosen ? chosen.note : '';
+    }
+    licSel.addEventListener('change', showLicenceNote);
+    showLicenceNote();
+
+    // Changing the issue changes every suggestion that depends on it -- the
+    // page range continues a different sequence and the running order starts
+    // from a different place. Re-ask rather than show numbers for the issue
+    // the editor just navigated away from.
+    document.getElementById('pubIssue').addEventListener('change', function(){
+      loadPublication(this.value);
+    });
 
     document.getElementById('pubSave').addEventListener('click', async function(){
       clearAlert();

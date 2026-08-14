@@ -66,10 +66,22 @@ const {
   sortIssues,
   sortArticlesInIssue,
 } = require('../lib/issues');
+const {
+  LICENCES,
+  DEFAULT_LICENCE,
+  suggestPages,
+  nextStartPage,
+  pageOverlaps,
+  nextArticleOrder,
+  duplicateOrder,
+  generateDoi,
+  normaliseDoi,
+} = require('../lib/publication');
+const { pdfPageCount } = require('../lib/pdf-pages');
 const { JOURNALS, JOURNAL_CODES } = require('../lib/journals');
 const { generateHtmlGalley } = require('../lib/galley');
 const notifications = require('../lib/notifications');
-const { SITE_URL } = require('../config');
+const { SITE_URL, DOI_PREFIX } = require('../config');
 
 const router = express.Router();
 
@@ -610,6 +622,131 @@ router.get('/submissions/:id/galleys/:galleyId/file', async (req, res, next) => 
 // Publication metadata
 // ============================================================================
 
+// How long is this article, in printed pages?
+//
+// Only the PDF galley can answer, because only the PDF is paginated -- HTML
+// full text has no pages at all. Where there are several PDFs (a corrected
+// version alongside the original) the first in galley order wins, which is the
+// one the reader is offered first.
+//
+// Returns null for "cannot tell", never a guess. Callers must treat null as
+// "ask the editor", because a wrong page range ends up inside citations that
+// other people have already made and cannot be corrected afterwards.
+async function pdfLengthOf(submission) {
+  const pdfs = sortGalleys(submission.galleys || []).filter(
+    (g) => g.format === 'pdf' && g.file && g.file.objectKey
+  );
+  if (!pdfs.length) return null;
+  try {
+    const buffer = await readStoredFile(pdfs[0].file.objectKey);
+    return pdfPageCount(buffer);
+  } catch (err) {
+    // A storage hiccup must not stop an editor publishing -- they can always
+    // type the range themselves. Degrade to manual, quietly.
+    return null;
+  }
+}
+
+// Everything the publication panel can work out on the editor's behalf, plus
+// the reasons it cannot where it cannot.
+//
+// This is a READ. It computes and returns; it never writes. The editor sees
+// each suggestion and accepts it explicitly.
+async function publicationSuggestions(submission, issue) {
+  const out = {
+    pages: '',
+    pagesReason: '',
+    articleOrder: null,
+    doi: '',
+    doiReason: '',
+    licence: submission.license || DEFAULT_LICENCE,
+    warnings: [],
+    pdfPageCount: null,
+  };
+
+  if (!issue) {
+    out.pagesReason = 'Assign the article to an issue first — pages run continuously through an issue, so there is nothing to count from until then.';
+    out.doiReason = 'Assign the article to an issue first.';
+    return out;
+  }
+
+  const siblings = await getSubmissionsByIssue(issue.id);
+  const others = (siblings || []).filter((a) => a.id !== submission.id);
+
+  out.articleOrder = nextArticleOrder(siblings, submission.id);
+
+  const pageCount = await pdfLengthOf(submission);
+  out.pdfPageCount = pageCount;
+  const startsAt = nextStartPage(siblings, submission.id);
+
+  if (pageCount) {
+    out.pages = suggestPages(siblings, submission.id, pageCount);
+  } else {
+    const hasPdf = (submission.galleys || []).some((g) => g.format === 'pdf');
+    out.pagesReason = hasPdf
+      ? `The PDF's length could not be read, so the range has to be typed. The next free page in this issue is ${startsAt}.`
+      : `Upload the PDF galley and the range fills itself in. The next free page in this issue is ${startsAt}.`;
+  }
+
+  const order = Number.isFinite(Number(submission.articleOrder))
+    ? Number(submission.articleOrder)
+    : out.articleOrder;
+
+  if (DOI_PREFIX) {
+    out.doi = generateDoi({
+      prefix: DOI_PREFIX,
+      journalCode: submission.journalCode,
+      year: issue.year,
+      volume: issue.volume,
+      number: issue.number,
+      articleOrder: order,
+    });
+  } else {
+    out.doiReason =
+      'No Crossref prefix is configured, so no DOI is offered. A generated DOI would be well-formed but would resolve to nothing — worse than leaving it blank, because authors cite it. Set DOI_PREFIX once membership is in place.';
+  }
+
+  const clashingOrder = duplicateOrder(siblings, submission.id, submission.articleOrder);
+  if (clashingOrder.length) {
+    out.warnings.push(
+      `Position ${submission.articleOrder} in this issue is also taken by "${clashingOrder[0].title}".`
+    );
+  }
+  const clashingPages = pageOverlaps(others, submission.id, submission.pages);
+  if (clashingPages.length) {
+    out.warnings.push(
+      `Pages ${submission.pages} overlap "${clashingPages[0].title}" (${clashingPages[0].pages}).`
+    );
+  }
+
+  return out;
+}
+
+// Read-only. The panel calls this whenever the issue changes, so the editor
+// sees what the system would fill in before anything is saved.
+router.get('/submissions/:id/publication/suggestions', async (req, res, next) => {
+  try {
+    const inScope = await loadInScope(req, res, req.params.id);
+    if (!inScope) return;
+    const submission = withWorkflowDefaults(inScope);
+    // ?issueId= lets the panel preview a DIFFERENT issue to the saved one,
+    // which is what the editor is looking at the moment they change the
+    // dropdown but before they save.
+    const wantedId = String(req.query.issueId || submission.issueId || '').trim();
+    const issue = wantedId ? await getIssueById(wantedId) : null;
+    const usable = issue && issue.journalCode === submission.journalCode ? issue : null;
+
+    res.json({
+      suggestions: await publicationSuggestions(submission, usable),
+      licences: LICENCES,
+      defaultLicence: DEFAULT_LICENCE,
+      doiPrefixConfigured: Boolean(DOI_PREFIX),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.patch('/submissions/:id/publication', async (req, res, next) => {
   try {
     const inScope = await loadInScope(req, res, req.params.id);
@@ -640,23 +777,60 @@ router.patch('/submissions/:id/publication', async (req, res, next) => {
 
     if (body.pages !== undefined) patch.pages = String(body.pages || '').trim();
     if (body.license !== undefined) patch.license = String(body.license || '').trim();
-    if (body.doi !== undefined) {
-      // Stored bare (10.xxxx/yyyy). Accepting a pasted doi.org URL and
-      // normalising it is kinder than rejecting it, and it stops half the
-      // records carrying a prefix the other half don't.
-      patch.doi = String(body.doi || '')
-        .trim()
-        .replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, '')
-        .replace(/^doi:\s*/i, '');
-    }
+    // Stored bare (10.xxxx/yyyy) -- see lib/publication.js on why.
+    if (body.doi !== undefined) patch.doi = normaliseDoi(body.doi);
     if (body.articleOrder !== undefined) {
       const order = Number(body.articleOrder);
       patch.articleOrder = Number.isFinite(order) ? order : null;
     }
 
+    const merged0 = withWorkflowDefaults(Object.assign({}, submission, patch));
+    const issue = merged0.issueId ? await getIssueById(merged0.issueId) : null;
+
+    // Fill the blanks, and ONLY the blanks.
+    //
+    // The editor's own value always wins -- an issue that paginates with
+    // section prefixes, or a running order set deliberately out of sequence,
+    // must survive the next save of an unrelated field. So these apply when
+    // the field is empty, never as a correction to something already there.
+    if (issue) {
+      const siblings = await getSubmissionsByIssue(issue.id);
+
+      if (!String(merged0.articleOrder ?? '').trim() && merged0.articleOrder !== 0) {
+        patch.articleOrder = nextArticleOrder(siblings, submission.id);
+      }
+
+      if (!String(merged0.pages || '').trim()) {
+        const pageCount = await pdfLengthOf(merged0);
+        const suggested = suggestPages(siblings, submission.id, pageCount);
+        if (suggested) patch.pages = suggested;
+      }
+
+      // Defaulted only when the editor has never expressed a view. If they
+      // have just chosen "— not set —" that is a decision, and putting the
+      // default back would make the field impossible to clear.
+      if (!String(merged0.license || '').trim() && body.license === undefined) {
+        patch.license = DEFAULT_LICENCE;
+      }
+
+      if (!String(merged0.doi || '').trim() && DOI_PREFIX) {
+        const order = Number.isFinite(Number(patch.articleOrder ?? merged0.articleOrder))
+          ? Number(patch.articleOrder ?? merged0.articleOrder)
+          : null;
+        const doi = generateDoi({
+          prefix: DOI_PREFIX,
+          journalCode: merged0.journalCode,
+          year: issue.year,
+          volume: issue.volume,
+          number: issue.number,
+          articleOrder: order,
+        });
+        if (doi) patch.doi = doi;
+      }
+    }
+
     const updated = await updateSubmission(submission.id, patch);
     const merged = withWorkflowDefaults(updated || Object.assign({}, submission, patch));
-    const issue = merged.issueId ? await getIssueById(merged.issueId) : null;
 
     res.json({
       submission: {
@@ -668,6 +842,7 @@ router.patch('/submissions/:id/publication', async (req, res, next) => {
         articleOrder: merged.articleOrder,
       },
       issue: issue ? { id: issue.id, label: issueLabel(issue), status: issue.status } : null,
+      suggestions: await publicationSuggestions(merged, issue),
       publishBlockers: publishBlockers(merged, merged.galleys || [], issue),
     });
   } catch (err) {

@@ -164,6 +164,20 @@ const JOURNAL_EMAILS = {
   acfdi: `acfdi@${MAIL_DOMAIN}`,
 };
 
+// Crossref DOI prefix (the "10.xxxxx" half), assigned to the publisher on
+// membership. EMPTY UNTIL THAT EXISTS, AND THAT IS THE CORRECT STATE.
+//
+// While it is empty the platform offers no DOI at all. It could trivially
+// generate a well-formed string, and that is exactly the trap: a DOI that
+// resolves nowhere looks authoritative, gets printed on CVs and into other
+// people's reference lists, and is checked by DOAJ and Scopus assessors. An
+// empty field is incomplete; a dead DOI is a false claim you cannot recall.
+//
+// Setting this switches suggestion on. It does NOT register anything --
+// depositing metadata with Crossref is a separate step this platform does not
+// yet perform, so a minted DOI stays unresolvable until that exists too.
+const DOI_PREFIX = String(process.env.DOI_PREFIX || '').trim();
+
 // Used for mail that isn't tied to a single journal (e.g. "you've been made a
 // reviewer"), and as the fallback if a journal code is ever unrecognized.
 const EDITORIAL_EMAIL = process.env.EDITORIAL_EMAIL || `editorial@${MAIL_DOMAIN}`;
@@ -195,6 +209,7 @@ module.exports = {
   CRON_SECRET,
   MAIL_TRANSPORT,
   SITE_URL,
+  DOI_PREFIX,
   MAIL_DOMAIN,
   JOURNAL_EMAILS,
   EDITORIAL_EMAIL,

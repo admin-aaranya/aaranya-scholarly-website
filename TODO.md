@@ -36,17 +36,22 @@ each `journals/*.html` page, the article landing pages
 (`lib/public-pages.js`), and the Scholar citation metadata. Tell me the
 numbers and I will wire all three.
 
-### 2. Decide the default licence
+### 2. Confirm the default licence, and put it in the author guidelines
 
-"Open Access" is on every page of the site. Nothing states a licence, and the
-per-article licence field is optional and currently blank.
+The licence field is now a real choice rather than free text, and defaults to
+**CC BY 4.0** — the conventional licence for a genuinely open-access journal,
+and the one Plan S and most funders expect. Article pages state it and link to
+the deed with `rel="license"`.
 
-CC BY 4.0 is the conventional choice for a genuinely open-access journal.
-Whatever you pick has to appear in the author guidelines, not just in a field
-an editor might forget to fill.
+Two things still outstanding:
 
-DOAJ asks for this explicitly. A masthead promise the article pages do not
-back up is what an assessor notices.
+- **Confirm CC BY 4.0 is what you actually want.** If you would rather use
+  CC BY-NC, know that it fails some funder mandates and is not counted as
+  fully open by every indexer. Change `DEFAULT_LICENCE` in
+  `lib/publication.js`.
+- **Say so in the author guidelines.** A licence chosen per article by an
+  editor is not a policy. Authors need to know what they are agreeing to
+  before they submit, and DOAJ asks where the licensing terms are published.
 
 ### 3. Publish one article end to end
 
@@ -97,10 +102,17 @@ Minor.
 
 None of these block anything. Roughly in the order they would matter.
 
-- **Crossref DOI registration.** A DOI can be recorded against an article,
-  but nothing mints or deposits it. Today someone mints it elsewhere and
-  pastes it in. Real support needs a Crossref membership and depositing
-  metadata XML on publication.
+- **Crossref DOI registration.** DOIs are now minted automatically —
+  `prefix/journal.year.volume.number.order`, deterministic so one article can
+  never acquire two — but **only once `DOI_PREFIX` is set on the Cloud Run
+  service**, and it is deliberately unset. Until you hold a Crossref prefix
+  the field stays blank, because a well-formed DOI that resolves nowhere is
+  worse than none: authors put it on CVs, and DOAJ and Scopus assessors check
+  that a sample of DOIs resolve.
+
+  Note the remaining half even after the prefix arrives: minting the string is
+  not registering it. Depositing metadata XML with Crossref on publication
+  still does not exist, so a minted DOI stays unresolvable until it does.
 - **Figures, tables and equations in the HTML full text.** The generator
   works from plain text, so a generated galley is prose and references only.
   The PDF carries everything else and the article page says so. Fixing it
