@@ -66,7 +66,14 @@
     const user = getUser();
 
     if (isLoggedIn() && user) {
-      loginBtn.textContent = 'My Dashboard (' + user.name.split(' ')[0] + ')';
+      // First name only, and no "My" -- this button sits in a nav bar that is
+      // already competing for width, and logging in ADDS a second button next
+      // to it. A long label here is what pushed the links onto a second line.
+      // A very long first name is truncated by CSS rather than by cutting the
+      // string, so the full name still reads correctly on hover.
+      const first = user.name.split(' ')[0];
+      loginBtn.textContent = 'Dashboard (' + first + ')';
+      loginBtn.title = user.name;
       loginBtn.href = base + 'dashboard.html';
 
       const registerBtn = document.getElementById('authRegisterBtn');

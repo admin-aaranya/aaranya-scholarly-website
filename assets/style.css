@@ -82,14 +82,28 @@ header.main .wrap{display:flex;align-items:center;gap:22px;}
 }
 .search-mini{display:flex;align-items:center;border:1px solid var(--line);border-radius:22px;padding:6px 14px;gap:8px;color:var(--muted);font-size:13px;min-width:180px;}
 
-/* ---- Nav ---- */
+/* ---- Nav ----
+   The bar carries two groups that compete for one line: the section links
+   and the account buttons. Logging in ADDS a third button, so the widest
+   case is a signed-in reader -- which is exactly the case nobody sees while
+   building the page. Left alone, the links wrapped to a second line while
+   the buttons stayed vertically centred against them, and the button labels
+   broke mid-word ("Log / Out").
+
+   Three rules keep it honest: nothing wraps INSIDE an item, the buttons
+   never shrink, and past the point where both groups genuinely cannot share
+   a line the buttons take a row of their own rather than sitting askew. */
 nav.primary{background:var(--navy);}
-nav.primary .wrap{display:flex;align-items:center;}
-nav.primary ul{list-style:none;display:flex;margin:0;padding:0;flex-wrap:wrap;}
+nav.primary .wrap{display:flex;align-items:center;flex-wrap:wrap;}
+/* flex:1 0 auto -- grows to fill, never shrinks. Shrinking is what forced the
+   links to wrap internally while the buttons kept their place; refusing to
+   shrink makes the whole button group move to its own row instead, at
+   whatever width that becomes necessary. No breakpoint to guess at. */
+nav.primary ul{list-style:none;display:flex;margin:0;padding:0;flex:1 0 auto;flex-wrap:wrap;align-items:center;}
 nav.primary li{position:relative;}
 nav.primary a{
-  display:block;padding:13px 18px;color:#e7eef2;font-size:13.5px;font-weight:500;
-  border-right:1px solid rgba(255,255,255,.08);
+  display:block;padding:13px 14px;color:#e7eef2;font-size:13.5px;font-weight:500;
+  border-right:1px solid rgba(255,255,255,.08);white-space:nowrap;
 }
 nav.primary li:hover > a{background:var(--teal);color:#fff;}
 nav.primary .caret{font-size:9px;opacity:.6;margin-left:4px;}
@@ -98,10 +112,18 @@ nav.primary .dropdown{
   box-shadow:0 10px 24px rgba(0,0,0,.15);z-index:20;border-top:3px solid var(--gold);
 }
 nav.primary li:hover .dropdown{display:block;}
-nav.primary .dropdown a{color:var(--ink);padding:11px 16px;border-right:none;border-bottom:1px solid var(--line);font-weight:400;}
+/* white-space:normal undoes the nowrap inherited from the bar's own links.
+   Journal titles here run to sixty characters; without this the dropdown
+   widens to fit one line and runs off the right edge of the window. */
+nav.primary .dropdown a{color:var(--ink);padding:11px 16px;border-right:none;border-bottom:1px solid var(--line);font-weight:400;white-space:normal;}
 nav.primary .dropdown a:hover{background:var(--bg-soft);color:var(--teal);}
 nav.primary .dropdown .journal-code{display:inline-block;width:20px;color:var(--gold-dark);font-weight:700;font-size:11px;}
-nav.primary .cta-slot{margin-left:auto;display:flex;gap:10px;padding:9px 0;}
+nav.primary .cta-slot{margin-left:auto;display:flex;align-items:center;gap:8px;padding:8px 0;flex:0 0 auto;}
+nav.primary .cta-slot .btn{padding:8px 14px;white-space:nowrap;}
+/* The dashboard button carries the reader's first name, so its width is not
+   ours to control. Cap it and ellipsis rather than let one long name reflow
+   the whole bar; the full name is on the title attribute. */
+nav.primary .cta-slot #authLoginBtn{max-width:200px;overflow:hidden;text-overflow:ellipsis;}
 .btn{
   display:inline-block;padding:9px 18px;border-radius:4px;font-size:13px;font-weight:600;
   letter-spacing:.02em;cursor:pointer;border:1px solid transparent;
@@ -349,6 +371,8 @@ footer{background:var(--navy-dark);color:#c3d3db;padding:44px 0 0;}
 .foot-social a{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:11px;color:#c3d3db;}
 
 @media (max-width: 860px){
+  nav.primary a{padding:12px 11px;font-size:13px;}
+  nav.primary .cta-slot{margin-left:0;padding-top:4px;}
   .scope-grid,.board-grid,.journal-grid{grid-template-columns:1fr 1fr;}
   .pillar-grid,.workflow-grid{grid-template-columns:1fr 1fr 1fr;}
   .footer-grid{grid-template-columns:1fr 1fr;}
