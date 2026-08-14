@@ -206,6 +206,21 @@
         actions += '<button class="btn btn-ghost btn-sm" data-assign="editor" data-user="' + esc(u.id) + '" data-name="' + esc(u.name) + '">' +
           (isEd ? 'Edit editor journals' : 'Make editor') + '</button>';
         if (isEd) actions += ' <button class="btn btn-ghost btn-sm" data-revoke="editor" data-user="' + esc(u.id) + '">Remove</button>';
+
+        // Managing editor is unscoped -- it spans every journal, so there is
+        // no journal picker for it, just a grant. Kept behind its own button
+        // rather than folded into "Make editor", because the two are very
+        // different amounts of authority.
+        var storedManaging = (u.roles || []).indexOf('managing_editor') !== -1;
+        if (storedManaging){
+          actions += ' <button class="btn btn-ghost btn-sm" data-demote="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Remove managing editor</button>';
+        } else if (u.managingEditor){
+          // Managing by virtue of EDITOR_EMAILS, not by a stored role.
+          // Revoking here would do nothing, so do not offer it.
+          actions += ' <span class="hint">managing via config</span>';
+        } else {
+          actions += ' <button class="btn btn-navy btn-sm" data-promote="' + esc(u.id) + '" data-name="' + esc(u.name) + '">Make managing editor</button>';
+        }
       }
 
       return '<tr>' +
@@ -241,6 +256,32 @@
         if (!confirm('Remove the ' + role + ' role entirely?')) return;
         btn.disabled = true;
         await saveRole(btn.getAttribute('data-revoke-user') || btn.getAttribute('data-user'), role, false, []);
+      });
+    });
+
+    // Managing editor, granted and removed directly -- no journals to pick,
+    // because the whole point of the tier is that it is not scoped.
+    wrap.querySelectorAll('button[data-promote]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const name = btn.getAttribute('data-name');
+        if (!confirm('Make ' + name + ' a managing editor?\n\n' +
+          'This is the highest level of access:\n' +
+          '  · every journal, not a selected few\n' +
+          '  · can read every submission, including confidential reviewer comments\n' +
+          '  · can create and remove other editors and managing editors\n\n' +
+          'Grant it only to someone who runs the whole portfolio.')) return;
+        btn.disabled = true;
+        await saveRole(btn.getAttribute('data-promote'), 'managing_editor', true, []);
+      });
+    });
+
+    wrap.querySelectorAll('button[data-demote]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        const name = btn.getAttribute('data-name');
+        if (!confirm('Remove managing editor from ' + name + '?\n\n' +
+          'Any editor role they hold separately stays, along with its journals.')) return;
+        btn.disabled = true;
+        await saveRole(btn.getAttribute('data-demote'), 'managing_editor', false, []);
       });
     });
   }

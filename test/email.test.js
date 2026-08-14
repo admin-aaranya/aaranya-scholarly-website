@@ -534,6 +534,45 @@ test('html bodies escape angle brackets from user-supplied text', () => {
   assert.ok(nasty.html.includes('&lt;img src=x'), 'expected escaped editor note');
 });
 
+
+// ---- Role grant emails ----
+
+console.log('\nRole grant emails');
+
+test('a managing editor is not told they are a reviewer', () => {
+  // Regression: the template branched on role === 'editor', so every other
+  // role -- including managing_editor -- fell through to the reviewer wording
+  // and the reviewer dashboard link.
+  const m = T.roleGranted({ name: 'Dr Vara', role: 'managing_editor' });
+  assert.ok(/managing editor/i.test(m.subject), m.subject);
+  assert.ok(!/reviewer/i.test(m.subject), m.subject);
+  assert.ok(m.text.includes('editor.html'));
+  assert.ok(!m.text.includes('reviewer.html'));
+});
+
+test('an editor still gets the editor wording and link', () => {
+  const m = T.roleGranted({ name: 'Dr Editor', role: 'editor' });
+  assert.ok(/editor access/i.test(m.subject));
+  assert.ok(m.text.includes('editor.html'));
+});
+
+test('a reviewer still gets the reviewer wording and link', () => {
+  const m = T.roleGranted({ name: 'Dr Reviewer', role: 'reviewer' });
+  assert.ok(/reviewer/i.test(m.subject));
+  assert.ok(m.text.includes('reviewer.html'));
+});
+
+test('an unknown role falls back to the least privileged wording', () => {
+  const m = T.roleGranted({ name: 'Someone', role: 'nonsense' });
+  assert.ok(/reviewer/i.test(m.subject));
+});
+
+test('the underscore in managing_editor never reaches the reader', () => {
+  const m = T.roleGranted({ name: 'Dr Vara', role: 'managing_editor' });
+  assert.ok(!m.text.includes('managing_editor'), m.text);
+  assert.ok(!m.html.includes('managing_editor'));
+});
+
 // ---- Summary ----
 
 console.log(`\n${passed} passed, ${failed} failed\n`);
